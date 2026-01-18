@@ -4,6 +4,7 @@ using Dinesaur.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dinesaur.Migrations
 {
     [DbContext(typeof(DinesaurContext))]
-    partial class DinesaurContextModelSnapshot : ModelSnapshot
+    [Migration("20260118120509_Comments")]
+    partial class Comments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,9 +106,6 @@ namespace Dinesaur.Migrations
                         {
                             Id = "1",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "4c687c0f-d166-4b8d-b8dd-337e58109d65",
-                            Contact = 91234567,
-                            CreatedAtUtc = new DateTime(2026, 1, 18, 13, 2, 8, 384, DateTimeKind.Utc).AddTicks(7800),
                             ConcurrencyStamp = "31ff5b91-1102-4a05-b4b2-d2ee2301b2ef",
                             Contact = 91234567,
                             CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 327, DateTimeKind.Utc).AddTicks(1929),
@@ -115,9 +115,6 @@ namespace Dinesaur.Migrations
                             Name = "Admin",
                             NormalizedEmail = "ADMIN@LOCALHOST.COM",
                             NormalizedUserName = "ADMIN@LOCALHOST.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAENydkY2M+fGTIbZLgYwMt/FXAYLZ2Ji1gH6ICByxqQrCPogZP6GyEIA2aTYB6Uu7wg==",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "8a44c102-5da2-420b-95e2-9df223df00ae",
                             PasswordHash = "AQAAAAIAAYagAAAAEFfz4akgl7RO0/L0TeYkrUqYFKU0GvKbrZTsvI3/u+sSF4sZvfLKMk/j7gPNwrrqlg==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "4f75917b-1ead-44d2-8564-b62693b89954",
@@ -128,9 +125,6 @@ namespace Dinesaur.Migrations
                         {
                             Id = "2",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "25ef36d3-15ee-4c8f-97e7-1105e870a6fb",
-                            Contact = 91234568,
-                            CreatedAtUtc = new DateTime(2026, 1, 18, 13, 2, 8, 438, DateTimeKind.Utc).AddTicks(3447),
                             ConcurrencyStamp = "67d96dff-721e-4d14-b2b9-d311ea85ef83",
                             Contact = 97826235,
                             CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 390, DateTimeKind.Utc).AddTicks(690),
@@ -150,9 +144,161 @@ namespace Dinesaur.Migrations
                         {
                             Id = "3",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "c704d339-23c3-47d6-8dbc-d2d0cbdc162b",
+                            ConcurrencyStamp = "a52a5204-256e-48f3-9014-2de042e1bc76",
+                            Contact = 82613992,
+                            CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 455, DateTimeKind.Utc).AddTicks(622),
+                            Email = "Tomahawk@gmail.com",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            Name = "Tomahawk Admin",
+                            NormalizedEmail = "TOMAHAWK@GMAIL.COM",
+                            NormalizedUserName = "TOMAHAWK@GMAIL.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEPR4yT6QxMI0HnI/RwWbtfvUe3aBPvoTYXHn1sPH/AsJs/PjDD7f9HfwwD/DRndHTg==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "60867c7a-720f-4ce2-89c5-354646566f86",
+                            TwoFactorEnabled = false,
+                            UserName = "Tomahawk@gmail.com"
+                        },
+                        new
+                        {
+                            Id = "4",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "66edff78-a6c8-468a-872c-9a698c0a69bc",
+                            Contact = 82613992,
+                            CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 514, DateTimeKind.Utc).AddTicks(9460),
+                            Email = "ButcherBlock@gmail.com",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            Name = "ButcherAdmin",
+                            NormalizedEmail = "BUTCHERBLOCK@GMAIL.COM",
+                            NormalizedUserName = "BUTCHERBLOCK@GMAIL.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEDDO6iU/5J+QEFLbxHkX2zLVR4cnVZjHi/tGW468gvD/RFfJF+B38L+kNcjvmVnOGw==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "72e3bf63-f9d7-4d2f-acfd-2f446ccd5535",
+                            TwoFactorEnabled = false,
+                            UserName = "ButcherBlock@gmail.com"
+                        },
+                        new
+                        {
+                            Id = "5",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "95fab67b-7f8b-447b-b5e9-edcd55480a35",
+                            Contact = 88706606,
+                            CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 577, DateTimeKind.Utc).AddTicks(3920),
+                            Email = "labula@gmail.com",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            Name = "LabulaAdmin",
+                            NormalizedEmail = "LABULA@GMAIL.COM",
+                            NormalizedUserName = "LABULA@GMAIL.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEKD38mBPK9ldLllphxg80MXAqdMbyXm6DOf1+dalIbIgOBp/5xTbIR7bZRRTVCplPA==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "d70cef2f-428b-480e-8e78-0e124a9a90c1",
+                            TwoFactorEnabled = false,
+                            UserName = "labula@gmail.com"
+                        },
+                        new
+                        {
+                            Id = "6",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "db034fb8-016c-4aaf-b05f-3aec4f57d2cb",
+                            Contact = 94799101,
+                            CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 634, DateTimeKind.Utc).AddTicks(9027),
+                            Email = "chefhats@gmail.com",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            Name = "ChefHatsAdmin",
+                            NormalizedEmail = "CHEFHATS@GMAIL.COM",
+                            NormalizedUserName = "CHEFHATS@GMAIL.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEMG7HfHhiznny/+WJ2gKjxEgoYq3AlI+XTopPzDIcgssTadZc0ePY1eJoZtX77SeYw==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "44d0eea1-6d53-4054-9b44-dbe47facd3ec",
+                            TwoFactorEnabled = false,
+                            UserName = "chefhats@gmail.com"
+                        },
+                        new
+                        {
+                            Id = "7",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "7bbcdc97-bdd8-44a5-9442-3e34c07c3d96",
                             Contact = 91234560,
-                            CreatedAtUtc = new DateTime(2026, 1, 18, 13, 2, 8, 493, DateTimeKind.Utc).AddTicks(2070),
+                            CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 695, DateTimeKind.Utc).AddTicks(5811),
+                            Email = "tdp@gmail.com",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            Name = "TDPAdmin",
+                            NormalizedEmail = "TDP@GMAIL.COM",
+                            NormalizedUserName = "TDP@GMAIL.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEGzr4FXLuo5QcUSoQP2G9aYdV8Y342u77VqqNfxgtazOoemkq/XRv1tg3K1aTfPP/Q==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "3137231d-0b2e-443e-96ef-cafe744eb94f",
+                            TwoFactorEnabled = false,
+                            UserName = "tdp@gmail.com"
+                        },
+                        new
+                        {
+                            Id = "8",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "431876ce-98ae-47d9-85aa-63a220e47934",
+                            Contact = 96409718,
+                            CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 752, DateTimeKind.Utc).AddTicks(5156),
+                            Email = "oliverchay@gmail.com",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            Name = "Oliver",
+                            NormalizedEmail = "OLIVERCHAY@GMAIL.COM",
+                            NormalizedUserName = "OLIVERCHAY@GMAIL.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEOjunYC3yinCNecBkqpSYrYZCBCZQG6BrWQNbb9ylDK+zOew/Oc+29AQ8rzxEi1tiQ==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "71543d6a-1393-4d69-95f5-fefa309a5562",
+                            TwoFactorEnabled = false,
+                            UserName = "oliverchay@gmailcom"
+                        },
+                        new
+                        {
+                            Id = "9",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "021e9f57-0fee-4b5f-8597-ff32d727b8c2",
+                            Contact = 93278292,
+                            CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 824, DateTimeKind.Utc).AddTicks(6863),
+                            Email = "ryanneo@gmail.com",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            Name = "Ryan",
+                            NormalizedEmail = "RYANNEO@GMAIL.COM",
+                            NormalizedUserName = "RYANNEO@GMAIL.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEHq1G2ZBj+wDuHdfEBGpPItGI6RjmL4JXD0ZYjvTtrh/vI8EIquq8U8O1HdndhXYAA==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "3ba34bed-d244-4977-ac9b-88e2e2b365c2",
+                            TwoFactorEnabled = false,
+                            UserName = "ryanneo@gmail.com"
+                        },
+                        new
+                        {
+                            Id = "10",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fbd7731f-0b3b-4e48-8167-8968ad237791",
+                            Contact = 97629623,
+                            CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 892, DateTimeKind.Utc).AddTicks(8138),
+                            Email = "dustindomingo@gmail.com",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            Name = "Dustin",
+                            NormalizedEmail = "DUSTINDOMINGO@GMAIL.COM",
+                            NormalizedUserName = "DUSTINDOMINGO@GMAIL.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEGAvpnGQ7h2uwr0RD4XygIjamp/A4Dz0wjO4WfXXidNOXmRbvJS6k8LwHnTODywMIg==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "a4a06043-49cf-4db2-8a5b-d7a33ce6cb03",
+                            TwoFactorEnabled = false,
+                            UserName = "dustindomingo@gmail.com"
+                        },
+                        new
+                        {
+                            Id = "11",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fd2b98ee-52d7-42ef-a18d-4e82854dfb10",
+                            Contact = 97237323,
+                            CreatedAtUtc = new DateTime(2026, 1, 18, 12, 5, 7, 962, DateTimeKind.Utc).AddTicks(5108),
                             Email = "restaurantstaff@localhost.com",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
@@ -272,7 +418,7 @@ namespace Dinesaur.Migrations
                             Description = "White meat",
                             FoodName = "Chicken",
                             Image = "[]",
-                            MenuID = 1,
+                            MenuID = 9999,
                             StaffID = "999"
                         },
                         new
@@ -283,7 +429,7 @@ namespace Dinesaur.Migrations
                             Description = "Saba",
                             FoodName = "Fish",
                             Image = "[]",
-                            MenuID = 1,
+                            MenuID = 999,
                             StaffID = "9999"
                         });
                 });
@@ -315,9 +461,9 @@ namespace Dinesaur.Migrations
                         new
                         {
                             MenuID = 1,
-                            Category = "Food",
+                            Category = "",
                             Catergories = "[]",
-                            RestaurantID = 1
+                            RestaurantID = 999
                         },
                         new
                         {

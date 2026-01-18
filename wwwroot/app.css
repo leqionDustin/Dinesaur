@@ -12,6 +12,7 @@ html, body {
 }
 
 a, .btn-link {
+    font-size: 15px;
     color: #006bb7;
 }
 
@@ -19,6 +20,7 @@ a, .btn-link {
     color: #fff;
     background-color: #1b6ec2;
     border-color: #1861ac;
+    font-size: 15px;
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
@@ -71,11 +73,13 @@ h1:focus {
 }
 
     .nav-link:hover {
-        background-color: white; 
-        color: black; 
+        font-size: 20px;
+        background-color: white;
+        color: black;
         cursor: pointer;
     }
     .nav-link.active {
+        font-size: 20px;
         background-color: #222;
         color: #ffd700;
     }
@@ -88,7 +92,7 @@ h1 {
     color: #88E788;
     font-family: 'Bauhaus 93';
     text-align: center;
-    font-size: 125px;
+    font-size: 80px;
 }
 
 h1, h2{
@@ -366,5 +370,28 @@ h2, h3, h4, h5, h6 {
 
     .star:hover {
         color: #FFD700;
+    }
+
+.dark-bg {
+    position: relative; /* required for positioning the overlay */
+    color: white;
+    padding: 50px;
+    overflow: hidden; /* ensures the overlay stays inside the div */
+}
+
+    .dark-bg::before {
+        content: ""; /* required for pseudo-elements */
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.65); /* 50% black overlay */
+        z-index: 0; /* behind content */
+    }
+
+    .dark-bg * {
+        position: relative; /* make all child content above overlay */
+        z-index: 1;
     }
 

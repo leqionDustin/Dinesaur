@@ -5,10 +5,14 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider authenticationStateProvider
 @rendermode InteractiveServer
+@inject IJSRuntime JS
+@inject ScaniiClient ScaniiClient
+@using System.Text.Json;
+@using System.Text.Json.Serialization
 <PageTitle>Edit</PageTitle>
 <container style="text-align:center; margin-top:40px; color:white;">
 <h1>Edit Food</h1>
-
+@* Page to edit the food (any component of it) *@
 <hr />
 @if (Food is null)
 {
@@ -100,6 +104,17 @@ else
     <a href="/menus">Back to List</a>
 </div>
 </container>
+<script>
+    function noIMG() {
+        alert("Image uploaded is not allowed pick another");
+    }
+    function showCleanIMG() {
+        alert("Image uploaded is clean and saved");
+    }
+    function showBadIMG() {
+        alert("Image uploaded is not clean and rejected");
+    }
+</script>
 @code {
     [Parameter]
     public int id { get; set; } Food? food;
@@ -108,9 +123,15 @@ else
     private Food? Food { get; set; }
     private int RId;
     private string? ROwnerId;
-    private const int maxIMGFileSize = 5242880;
+    private const int maxIMGFileSize = 5000000;
     private List<string> Errors = new List<string>();
-    protected override async Task OnInitializedAsync()
+    private string? scanJson;
+    public class ScaniiResponse
+    {
+        [JsonPropertyName("findings")]
+        public List<object>? Findings { get; set; }
+    }
+    protected override async Task OnInitializedAsync() //get all details to pre set the input boxes with the current details 
     {
         var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
@@ -137,7 +158,7 @@ else
             NavigationManager.NavigateTo("notfound");
         }
     }
-    private async Task LoadIMG(InputFileChangeEventArgs f)
+    private async Task LoadIMG(InputFileChangeEventArgs f) //load image uploaded and display warning if uploaded file is not suitable
     {
         Errors.Clear();
         var files = f.GetMultipleFiles();
@@ -156,43 +177,69 @@ else
         {
             await IMG.OpenReadStream(maxIMGFileSize).CopyToAsync(mms);
             var fileBytes = mms.ToArray();
-            String base64String = Convert.ToBase64String(fileBytes);
-            string image = $"data:{IMG.ContentType};base64,{base64String}";
-            if (Food.Image.Count() > 0)
+            await using var scanStream = new MemoryStream(fileBytes);
+            scanJson = await ScaniiClient.ScanAsync( //get all details of the image uploaded
+                scanStream,
+                IMG.Name,
+                IMG.ContentType,
+                CancellationToken.None
+            );
+            var scan = JsonSerializer.Deserialize<ScaniiResponse>(scanJson); //gets the details of the scan of image but only the findings (the important part)
+            if (scan?.Findings != null && scan.Findings.Count > 0) //if image is bad, findings will have string in it
             {
-                Food.Image.Clear();
-            }
-            Food.Image.Add(image);
-        }
-        StateHasChanged();
-    }
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
-    private async Task UpdateFood()
-    {
-        using var context = DbFactory.CreateDbContext();
-        context.Attach(Food!).State = EntityState.Modified;
+                await JS.InvokeVoidAsync("showBadIMG");
+                Food.Image.Clear(); // ensure nothing is shown/saved
 
-        try
-        {
-            await context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!FoodExists(Food!.FoodID))
-            {
-                NavigationManager.NavigateTo("notfound");
             }
             else
             {
-                throw;
+                String base64String = Convert.ToBase64String(fileBytes);
+                string image = $"data:{IMG.ContentType};base64,{base64String}";
+                if (Food.Image.Count() > 0)
+                {
+                    Food.Image.Clear();
+                }
+                Food.Image.Add(image);
+                await JS.InvokeVoidAsync("showCleanIMG"); //image uploaded is clean
             }
         }
-
-        NavigationManager.NavigateTo("/menus");
+        await JS.InvokeVoidAsync("console.log", scanJson); // be able to view the result
+        StateHasChanged();
     }
 
-    private bool FoodExists(int foodid)
+    private async Task UpdateFood() //update details of food, if image is not allowed, does not update
+    {
+        if (Errors.Any())
+        {
+            await JS.InvokeVoidAsync("noIMG");
+        }
+        else
+        {
+            using var context = DbFactory.CreateDbContext();
+            context.Attach(Food!).State = EntityState.Modified;
+
+            try
+            {
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!FoodExists(Food!.FoodID))
+                {
+                    NavigationManager.NavigateTo("notfound");
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            NavigationManager.NavigateTo("/menus");
+        }
+       
+    }
+
+    private bool FoodExists(int foodid) // get details on the current food item to be edited and check if it does exist in the database
     {
         using var context = DbFactory.CreateDbContext();
         return context.Food.Any(e => e.FoodID == foodid);

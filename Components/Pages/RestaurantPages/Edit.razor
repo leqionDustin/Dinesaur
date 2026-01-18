@@ -4,8 +4,12 @@
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
 @inject NavigationManager NavigationManager
 @rendermode InteractiveServer
+@inject IJSRuntime JS
+@inject ScaniiClient ScaniiClient
+@using System.Text.Json;
+@using System.Text.Json.Serialization
 <PageTitle>Edit</PageTitle>
-
+@*Edit page for Restaurant *@
 <div style="max-width:1100px; margin:0 auto;">
 
     <!-- Header -->
@@ -32,7 +36,7 @@
     }
     else
     {
-        <!-- NOTE: Form wraps both cards just like your index actions area -->
+        @* For the Restaurant Owner to change their restaurant *@
         <EditForm method="post" Model="Restaurant" OnValidSubmit="UpdateRestaurant" FormName="edit" Enhance>
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert" />
@@ -135,7 +139,7 @@
                         <ValidationMessage For="() => Restaurant.AdminID" class="text-danger" />
                     </div>
 
-                    <!-- Actions (match index buttons) -->
+                    @* Save changes done or return if misclick *@
                     <div style="
                             margin-top: 18px;
                             display:flex;
@@ -175,9 +179,7 @@
                         color:white;
                     ">
                     <h4 style="margin:0 0 12px 0;">Restaurant Logo</h4>
-                    <p style="margin:0 0 14px 0; color:#cfcfcf; font-size:14px;">
-                        A clear square logo looks best.
-                    </p>
+                    
 
                     <div class="mb-3">
                         <label for="image" class="form-label" style="color:white;">Upload Image of Logo</label>
@@ -242,7 +244,17 @@
     }
 
 </div>
-
+<script>
+    function noIMG() {
+        alert("Image uploaded is not allowed pick another");
+    }
+     function showCleanIMG() {
+        alert("Image uploaded is clean and saved");
+    }
+    function showBadIMG() {
+        alert("Image uploaded is not clean and rejected");
+    }
+</script>
 @code {
     [Parameter]
     public int id { get; set; } Restaurant? restaurant;
@@ -250,6 +262,12 @@
     private Restaurant? Restaurant { get; set; }
     private const int maxLogoFileSize = 5242880;
     private List<string> FileErrors = new List<string>();
+    private string? scanJson;
+    public class ScaniiResponse
+    {
+        [JsonPropertyName("findings")]
+        public List<object>? Findings { get; set; }
+    }
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
@@ -257,36 +275,41 @@
 
         if (Restaurant is null)
         {
-            NavigationManager.NavigateTo("notfound");
+            NavigationManager.NavigateTo("notfound"); //if restaurant does not exist , cannot be edited
         }
     }
 
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
     private async Task UpdateRestaurant()
     {
-        using var context = DbFactory.CreateDbContext();
-        context.Attach(Restaurant!).State = EntityState.Modified;
-
-        try
+        if (FileErrors.Any()) //prevents update if uploaded file is not compatible
         {
-            await context.SaveChangesAsync();
+            await JS.InvokeVoidAsync("noIMG");
         }
-        catch (DbUpdateConcurrencyException)
+        else
         {
-            if (!RestaurantExists(Restaurant!.RestaurantID))
-            {
-                NavigationManager.NavigateTo("notfound");
-            }
-            else
-            {
-                throw;
-            }
-        }
+            using var context = DbFactory.CreateDbContext();
+            context.Attach(Restaurant!).State = EntityState.Modified; //attaches the changes to the respective restaurant
 
-        NavigationManager.NavigateTo("/RestaurantStaff/Home");
+            try
+            {
+                await context.SaveChangesAsync();// saves change made
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!RestaurantExists(Restaurant!.RestaurantID))
+                {
+                    NavigationManager.NavigateTo("notfound");
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            NavigationManager.NavigateTo("/RestaurantStaff/Home");
+        }
     }
-    private List<String> Categories = new List<String>
+    private List<String> Categories = new List<String> //default categories set for the restaurants to have
     {
          "",
          "Western",
@@ -296,7 +319,7 @@
          "HotPot",
          "Others",
     };
-    private async Task LoadFiles(InputFileChangeEventArgs e)
+    private async Task LoadFiles(InputFileChangeEventArgs e) //to show the image and rendered it as well as save to database, prevent non image uploads
     {
         FileErrors.Clear();
         var files = e.GetMultipleFiles();
@@ -315,19 +338,38 @@
         {
             await Logo.OpenReadStream(maxLogoFileSize).CopyToAsync(ms);
             var fileBytes = ms.ToArray();
-            String base64String = Convert.ToBase64String(fileBytes);
-            string imageUri = $"data:{Logo.ContentType};base64,{base64String}";
-            if (Restaurant.Logo.Count() > 0)
+            await using var scanStream = new MemoryStream(fileBytes);
+            scanJson = await ScaniiClient.ScanAsync( //get all details of the image uploaded
+                scanStream,
+                Logo.Name,
+                Logo.ContentType,
+                CancellationToken.None
+            );
+            var scan = JsonSerializer.Deserialize<ScaniiResponse>(scanJson); //gets the details of the scan of image but only the findings (the important part)
+            if (scan?.Findings != null && scan.Findings.Count > 0) //if image is bad, findings will have string in it
             {
-                Restaurant.Logo.Clear();
+                await JS.InvokeVoidAsync("showBadIMG");
+                Restaurant.Logo.Clear(); // ensure nothing is shown/saved
+
             }
-            Restaurant.Logo.Add(imageUri);
+            else
+            {
+                String base64String = Convert.ToBase64String(fileBytes);
+                string imageUri = $"data:{Logo.ContentType};base64,{base64String}"; //converts img uploaded to string to render it and add to list before calling it as an actual img
+                if (Restaurant.Logo.Count() > 0)
+                {
+                    Restaurant.Logo.Clear();
+                }
+                Restaurant.Logo.Add(imageUri);
+                await JS.InvokeVoidAsync("showCleanIMG"); //image uploaded is clean
+            }
         }
+        await JS.InvokeVoidAsync("console.log", scanJson); // be able to view the result
         StateHasChanged();
     }
     private bool RestaurantExists(int restaurantid)
     {
         using var context = DbFactory.CreateDbContext();
-        return context.Restaurant.Any(e => e.RestaurantID == restaurantid);
+        return context.Restaurant.Any(e => e.RestaurantID == restaurantid);//gets the restaurant details base on which restaurant it is suppose to get
     }
 }

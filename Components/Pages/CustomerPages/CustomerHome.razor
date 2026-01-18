@@ -1,6 +1,6 @@
 ﻿@*Main Page For Dinesaur Customers*@
 
-
+@*Importing Libraries*@
 @page "/User/Home"
 @using Dinesaur.Domain
 @using Microsoft.EntityFrameworkCore
@@ -10,63 +10,69 @@
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
 @inject Dinesaur.Data.DinesaurContext DbContext
 @rendermode InteractiveServer
+
+<!-- Main Container -->
     <div style="
          width: 100%;
          color: white;
          padding: 50px;
          align-items: center;">
+
+        @*Intro*@
         <div style="display: flex; gap: 100px; height: 400px; align-items: center; justify-content: left">
             <div style>
                 <h1 style="text-align: left"> Welcome,</h1>
                 <h1 style="text-align: left"> @displayName!</h1>
             </div>
-            <div>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+             <div style="display: flex; gap: 10px;">
+            @*Search Bar and Filters*@
             <form @onsubmit="Search">
                 <input type="text"
                        @bind-value="searchTerm"
                        placeholder="Search Restaurants"
                        id="searchinput"
-                       style="height: 50px; width: 200px;"
-                        />
+                        style="border-radius: 15px; height: 70px; padding: 10px;"/>
                 <button type="submit"
-                        
-                        >
+                        style="border-radius: 15px; height: 70px; padding: 10px;">
                     Search
                     </button>
             </form>
-            </div>
-            <div>
-                <button type="button"
-                style="padding: 12px 18px; font-size: 16px;"
-                        @onclick="OpenFilter">
-                        Filters
+            
+            
+                <button type="button" @onclick="OpenFilter" style="border-radius: 15px; height: 70px; padding: 10px;">
+                    Filters
                 </button>
-            </div>
-             @if (restaurants.Count != 0)
+                </div>
+                <div>
+                @if (restaurants.Count != 0)
                 {
-             var searchedRestaurant = searchrestaurants
-            .ToList();
-            var filteredRestaurant = filteredrestaurants
-            .ToList();
-            if(searchedRestaurant.Any() || filteredRestaurant.Any())
-        {       
-                num = Math.Max(
-                searchedRestaurant?.Count ?? 0,
-                filteredRestaurant?.Count ?? 0
-                );
-                <h3>@num match found</h3>
-        }
-            else
-            {
-                <h3>No match found</h3>
-            }
-        }
-        </div>
-       
-        
-        <div>
+                    var searchedRestaurant = searchrestaurants
+                    .ToList();
+                    var filteredRestaurant = filteredrestaurants
+                    .ToList();
+                    if (searchedRestaurant.Any() || filteredRestaurant.Any())
+                    {
+                        num = Math.Max(
+                        searchedRestaurant?.Count ?? 0,
+                        filteredRestaurant?.Count ?? 0
+                        );
+                        <h3>@num match found</h3>
+                    }
+                    else
+                    {
+                        <h3>No match found</h3>
+                    }
+                }
+            </div>
+     </div>
+     </div>
+
+
+            <div>
+
            
-        @* *@
+        @*Showing Restaurants*@
                 @if (restaurants.Count == 0)
                 {
                     <p><em>Loading...</em></p>
@@ -86,7 +92,7 @@
                     <h3>Searched Restaurants by Search Bar</h3>
                     
                 
-                <div style="display: grid; grid-template-columns: repeat(5,1fr) ;">
+                <div style="display: grid; grid-template-columns: repeat(5,1fr) ; gap: 20px;">
                  @foreach (var restaurant in searchedRestaurants)
                      {
                         <a href="/Restaurants/@restaurant.RestaurantID">
@@ -115,7 +121,7 @@
                 {
                 <h3>Searched Restaurants by Filter</h3>
 
-                <div style="display: grid; grid-template-columns: repeat(5,1fr) ;">
+                <div style="display: grid; grid-template-columns: repeat(5,1fr) ;gap: 20px;">
                     
                     @foreach (var restaurant in filteredRestaurants)
                     {
@@ -144,7 +150,7 @@
             if (!filteredRestaurants.Any() && !searchedRestaurants.Any())
             { 
                     <h3>Restaurants Avaliable</h3>
-                <div style="display: grid; grid-template-columns: repeat(5,1fr) ;">
+                <div style="display: grid; grid-template-columns: repeat(5,1fr) ; gap: 20px;">
                 @foreach( var restaurant in randomRestaurants)
                     {
                         
@@ -211,6 +217,7 @@
     }
 
 @code {
+    @*Variables*@
     private string? displayName;
     private string? searchinput,searchTerm;
     private int? num;
@@ -222,7 +229,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = (await Auth.GetAuthenticationStateAsync()).User;
+        var user = (await Auth.GetAuthenticationStateAsync()).User; @*Get User*@
         if (!user.Identity?.IsAuthenticated ?? true) return;
 
         var aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -237,6 +244,8 @@
         restaurants = await DbContext.Restaurant
         .Where(r => r.Status == Restaurant.ApprovalStatus.Approved).ToListAsync();
     }
+
+    @*Restaurant Categories*@
     private List<String> Categories = new List<String>
     {
          "",
@@ -247,12 +256,16 @@
          "HotPot",
          "Others",
     };
+
+    @*Go to Restaurant*@
     void displayRestaurant(Restaurant restaurant)
     {
 
         Console.WriteLine("CLICK REGISTERED");
         NavigationManager.NavigateTo($"/Restaurants/{restaurant.RestaurantID}");
     }
+
+    @*Search Function*@
     private async Task Search()
     {
         searchinput = searchTerm;
@@ -268,11 +281,15 @@
         hasSearched = true;
         StateHasChanged();
     }
+
+    @*Show Filter*@
     private async Task OpenFilter()
     {
         showFilter = true;
     }
     private void CloseFilter() => showFilter = false;
+
+    @*Apply Filter*@
     private async Task ApplyFilters()
     {
         filterCategory = Category;
