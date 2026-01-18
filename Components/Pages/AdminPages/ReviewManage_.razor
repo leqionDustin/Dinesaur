@@ -164,28 +164,18 @@
                 </div>
             </div>
         </div>
+    </Authorized>
 
-    }
-
-    @*Show Confirmation Of Review Removal*@
-    @if (removeReviewConfirmationPopUp)
-    {
-        <div class="modal-backdrop">
-
-            <div class="modal-card" @onclick:stopPropagation>
-                <h2 style="color: #88E788">Review Removed</h2>
-                <p style="color: white">Booking has been successfully removed.</p>
-                <div class="modal-buttons">
-                    <button class="secondary-btn" @onclick="CloseRemoveReviewConfirmationPopUp">Back</button>
-                </div>
-            </div>
-        </div>
-
-    }
-</div>
-
+    <NotAuthorized>
+        @AccessDenied()
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
+    // Fields / State
+    private string? displayName;
+    private bool isLoading = true;
+    private string? message;
 
     private List<Reservation> userBookings = new();
     private List<Review> reviews = new();
@@ -198,7 +188,8 @@
     private List<Review> ReviewTab = new List<Review>();
     DinesaurUserModel? selectedUser;
 
-    protected override async Task OnParametersSetAsync()
+    // Runs when the page loads and gets the admin's display name.
+    protected override async Task OnInitializedAsync()
     {
         @*Get Logged In User Info*@
         var authState = await Auth.GetAuthenticationStateAsync();
@@ -211,19 +202,32 @@
         }
         aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        @*Fetch Reservations and Restaurants from Database*@
-        using var context = DbFactory.CreateDbContext();
-        reviews = await context.Review.ToListAsync();
-        restaurants = await context.Restaurant.ToListAsync();
-        reservations = await context.Reservation.ToListAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        var identityUser = await db.Users
+            .Where(u => u.Id == aspNetUserId)
+            .Select(u => u.Name)
+            .SingleOrDefaultAsync();
 
 
-        StateHasChanged();
-
+        await LoadReviewsAsync();
     }
 
-    
-    public bool showCancelReview = false;
+    // Loads published and reported reviews.
+    private async Task LoadReviewsAsync()
+    {
+        isLoading = true;
+        message = null;
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        reviews = await db.Review
+            .Where(r =>
+                r.Status == Review.ApprovalStatusReviews.Published ||
+                r.Status == Review.ApprovalStatusReviews.Reported)
+            .ToListAsync();
+
+        reviews.Sort((x, y) => Nullable.Compare<DateTime>(x.Date, y.Date));
 
     @*Show Cancel Review Pop Up*@
     private void ShowCancelReview()
@@ -237,8 +241,9 @@
         showCancelReview = false;
     }
 
-    @*Remove Review From Database*@
-    private async Task CancelReview()
+
+    // Updates a review’s status and removes it from the list.
+    private async Task SetStatusAsync(int reviewId, Review.ApprovalStatusReviews newStatus)
     {
         if (selectedReview != null)
         {
@@ -308,4 +313,11 @@
         NavigationManager.NavigateTo("/admin/reviews/manage", forceLoad: true);
     }
 
+    // Navigate to Access Denied
+    private async Task AccessDenied()
+    {
+        NavigationManager.NavigateTo("/Account/AccessDenied");
+    }
+
+  
 }

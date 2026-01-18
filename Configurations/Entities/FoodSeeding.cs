@@ -18,7 +18,7 @@ namespace Dinesaur.Configurations.Entities
                     Cost = 3.50,
                     Description = "White meat",
                     StaffID = "999",
-                    MenuID = 9999,
+                    MenuID = 1,
                     Category = "Meat",
                     Image = new List<string>()
                 },
@@ -29,7 +29,7 @@ namespace Dinesaur.Configurations.Entities
                     Cost = 4.00,
                     Description = "Saba",
                     StaffID = "9999",
-                    MenuID = 999,
+                    MenuID = 1,
                     Category = "Seafood",
                     Image = new List<string>()
                 });

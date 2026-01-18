@@ -11,58 +11,67 @@
 @inject Dinesaur.Data.DinesaurContext DbContext
 @inject UserManager<Dinesaur.Data.DinesaurUser> UserManager
 
+<!-- Only administrators can access this page -->
 <AuthorizeView Roles="Administrator">
-    <Authorized>
-        <!-- MAIN PANEL -->
-        <div style="
-            width: 100%;
-            color: white;
-            padding: 50px;
-            align-items: center;">
 
+    <!-- Content shown to authorised administrators -->
+    <Authorized>
+
+        <!-- Main container for the admin page -->
+        <div style="width: 100%; color: white; padding: 50px; align-items: center;">
+
+            <!-- Welcome message and admin name -->
             <div style="display: flex; gap: 25px; height: 400px; align-items: center; justify-content: left">
                 <div>
                     <h1 style="text-align: left">Welcome,</h1>
                     <h1 style="text-align: left">@displayName!</h1>
                 </div>
             </div>
+
+            <!-- Section displaying restaurants awaiting approval -->
             <div style="margin-top:40px;">
                 <h2 style="font-size:70px;">Pending Restaurants</h2>
 
+                <!-- Modal shown when 'More Details' is clicked -->
                 @if (showDetailsModal && selectedRestaurant != null)
                 {
+                    <!-- Dark overlay behind the modal -->
                     <div style="
-            position:fixed;
-            inset:0;
-            background:rgba(0,0,0,0.7);
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            z-index:1000;">
+                            position:fixed;
+                            inset:0;
+                            background:rgba(0,0,0,0.7);
+                            display:flex;
+                            justify-content:center;
+                            align-items:center;
+                            z-index:1000;">
 
+                        <!-- Modal content displaying restaurant details -->
                         <div style="
-                background:#1e1e1e;
-                color:white;
-                width:60%;
-                max-width:900px;
-                padding:40px;
-                border-radius:12px;
-                box-shadow:0 0 30px rgba(0,0,0,0.6);">
+                                background:#1e1e1e;
+                                color:white;
+                                width:60%;
+                                max-width:900px;
+                                padding:40px;
+                                border-radius:12px;
+                                box-shadow:0 0 30px rgba(0,0,0,0.6);">
 
                             <h2 style="font-size:48px; margin-bottom:25px;">
                                 @selectedRestaurant.RestaurantName
                             </h2>
 
+                            <!-- Restaurant location -->
                             <p style="font-size:28px; margin-top:15px;">
                                 <strong>Location:</strong><br />
                                 @selectedRestaurant.Location
                             </p>
 
+                            <!-- Restaurant category -->
                             <p style="font-size:28px; margin-top:15px;">
                                 <strong>Category:</strong><br />
                                 @selectedRestaurant.Category
                             </p>
 
+                            <!-- Restaurant logos (if any exist) -->
                             @if (selectedRestaurant.Logo?.Count > 0)
                             {
                                 <p style="font-size:28px; margin-top:25px;">
@@ -78,12 +87,8 @@
                                 </div>
                             }
 
-                            <div style="
-                    margin-top:40px;
-                    display:flex;
-                    justify-content:flex-end;
-                    gap:20px;">
-
+                            <!-- Close button for the modal -->
+                            <div style="margin-top:40px; display:flex; justify-content:flex-end;">
                                 <button style="font-size:26px; padding:12px 24px;"
                                         @onclick="CloseModal">
                                     Close
@@ -93,101 +98,102 @@
                     </div>
                 }
 
+                <!-- Loading state while restaurants are being fetched -->
                 @if (isLoading)
                 {
                     <p style="font-size:50px;">Loading...</p>
                 }
+                <!-- Message shown when there are no pending restaurants -->
                 else if (pendingRestaurants.Count == 0)
                 {
-                    <p style="font-size:50px;">No restaurants awaiting approval.</p>
+                <p style="font-size:50px;">No restaurants awaiting approval.</p>
                 }
+                <!-- Table displaying all pending restaurants -->
                 else
                 {
-                    <table style="width:100%; border-collapse:collapse; margin-top:20px;">
-                        <thead>
-                            <tr style="border-bottom:2px solid #444; font-size:35px;">
-                                <th style="padding:14px; text-align:left;">Name</th>
-                                <th style="padding:14px; text-align:left;">Location</th>
-                                <th style="padding:14px; text-align:left;">Category</th>
-                                <th style="padding:14px; text-align:left;">Actions</th>
+                <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+                    <thead>
+                        <tr style="border-bottom:2px solid #444; font-size:35px;">
+                            <th style="padding:14px; text-align:left;">Name</th>
+                            <th style="padding:14px; text-align:left;">Location</th>
+                            <th style="padding:14px; text-align:left;">Category</th>
+                            <th style="padding:14px; text-align:left;">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var r in pendingRestaurants)
+                        {
+                            <tr style="border-bottom:1px solid #333; font-size:32px;">
+                                <td style="padding:14px;">@r.RestaurantName</td>
+                                <td style="padding:14px;">@r.Location</td>
+                                <td style="padding:14px;">@r.Category</td>
+
+                                <!-- Action buttons for each restaurant -->
+                                <td style="padding:20px;">
+                                    <div style="display:flex; gap:30px">
+
+                                        <!-- Approve restaurant -->
+                                        <button style="padding:12px 16px; font-size:25px;"
+                                                disabled="@busyIds.Contains(r.RestaurantID)"
+                                                @onclick="() => SetStatusAsync(r.RestaurantID, Restaurant.ApprovalStatus.Approved)">
+                                            Approve
+                                        </button>
+
+                                        <!-- Reject restaurant -->
+                                        <button style="padding:12px 16px; font-size:25px;"
+                                                disabled="@busyIds.Contains(r.RestaurantID)"
+                                                @onclick="() => SetStatusAsync(r.RestaurantID, Restaurant.ApprovalStatus.Rejected)">
+                                            Reject
+                                        </button>
+
+                                        <!-- View more details -->
+                                        <button style="padding:12px 16px; font-size:25px;"
+                                                @onclick="() => MoreDetails(r.RestaurantID)">
+                                            More Details
+                                        </button>
+
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-
-                        <tbody>
-                            @foreach (var r in pendingRestaurants)
-                            {
-                                <tr style="border-bottom:1px solid #333; font-size:32px;">
-                                    <td style="padding:14px;">@r.RestaurantName</td>
-                                    <td style="padding:14px;">@r.Location</td>
-                                    <td style="padding:14px;">@r.Category</td>
-
-                                    <td style="padding:20px;">
-                                        <div style=" display:flex; gap:30px">
-                                            <button style="padding:12px 16px; font-size:25px; cursor:pointer; margin-right:10px;"
-                                                    disabled="@busyIds.Contains(r.RestaurantID)"
-                                                    @onclick="() => SetStatusAsync(r.RestaurantID, Restaurant.ApprovalStatus.Approved)">
-                                                Approve
-                                            </button>
-
-                                            <button style="padding:12px 16px; font-size:25px; cursor:pointer;"
-                                                    disabled="@busyIds.Contains(r.RestaurantID)"
-                                                    @onclick="() => SetStatusAsync(r.RestaurantID, Restaurant.ApprovalStatus.Rejected)">
-                                                Reject
-                                            </button>
-
-                                            <button style="padding:12px 16px; font-size:25px; cursor:pointer;"
-                                                    @onclick="() => MoreDetails(r.RestaurantID)">
-                                                More Details
-                                            </button>
-
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                        }
+                    </tbody>
+                </table>
                 }
 
+                <!-- Displays success or error messages after actions -->
                 @if (!string.IsNullOrWhiteSpace(message))
                 {
                     <p style="margin-top:18px; font-size:28px;">@message</p>
                 }
             </div>
         </div>
-
-
-        
     </Authorized>
 
+    <!-- Content shown to users without administrator access -->
     <NotAuthorized>
-        <div style="
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        height:95vh;
-        color:white;
-        text-align:center;">
-
-            <h1 style="font-size:140px;">Access Denied</h1>
-            <p style="font-size:90px;">You must be an admin to view this page</p>
-        </div>
+        @AccessDenied()
     </NotAuthorized>
 
 </AuthorizeView>
 
+
 @code {
+
+    // Fields / State
+
     private string? displayName;
     private bool isLoading = true;
     private string? message;
     private bool showDetailsModal = false;
     private Restaurant? selectedRestaurant;
-
     private List<Restaurant> pendingRestaurants = new();
     private HashSet<int> busyIds = new();
 
     protected override async Task OnInitializedAsync()
     {
+        // Find the user's name in the database and then store it in displayName
+
         var user = (await Auth.GetAuthenticationStateAsync()).User;
         if (!user.Identity?.IsAuthenticated ?? true) return;
 
@@ -204,34 +210,48 @@
         await LoadPendingRestaurantsAsync();
 
     }
+    // Loads restaurants that are awaiting approval from the database.
     private async Task LoadPendingRestaurantsAsync()
     {
+        // Indicates data is currently loading.
         isLoading = true;
+
+        // Clear any previous messages.
         message = null;
 
+        // Create database context.
         await using var db = await DbFactory.CreateDbContextAsync();
 
+        // Retrieve all pending restaurants, newest first.
         pendingRestaurants = await db.Restaurant
             .Where(r => r.Status == Restaurant.ApprovalStatus.Pending)
             .OrderByDescending(r => r.RestaurantID)
             .ToListAsync();
 
+        // Loading complete.
         isLoading = false;
     }
 
 
+    // Approves or rejects a restaurant and updates the UI.
     private async Task SetStatusAsync(int restaurantId, Restaurant.ApprovalStatus newStatus)
     {
+        // Mark this restaurant as busy to disable buttons.
         busyIds.Add(restaurantId);
+
+        // Clear previous messages.
         message = null;
 
         try
         {
+            // Create database context.
             await using var db = await DbFactory.CreateDbContextAsync();
 
+            // Retrieve the selected restaurant.
             var restaurant = await db.Restaurant
                 .FirstOrDefaultAsync(r => r.RestaurantID == restaurantId);
 
+            // Handle case where the restaurant no longer exists.
             if (restaurant is null)
             {
                 message = "Restaurant not found (it may have been processed already).";
@@ -239,42 +259,56 @@
                 return;
             }
 
+            // Update approval status.
             restaurant.Status = newStatus;
             await db.SaveChangesAsync();
 
-
-            // Remove from UI list immediately
+            // Remove the restaurant from the pending list immediately.
             pendingRestaurants.RemoveAll(r => r.RestaurantID == restaurantId);
 
+            // Display confirmation message.
             message = newStatus == Restaurant.ApprovalStatus.Approved
                 ? "Restaurant approved."
                 : "Restaurant rejected.";
         }
         catch (Exception ex)
         {
+            // Display error message if something goes wrong.
             message = $"Error: {ex.Message}";
         }
         finally
         {
+            // Re-enable buttons for this restaurant.
             busyIds.Remove(restaurantId);
         }
     }
+
+    // Loads full restaurant details and opens the details modal.
     private async Task MoreDetails(int restaurantId)
     {
+        // Create database context.
         await using var db = await DbFactory.CreateDbContextAsync();
 
+        // Retrieve selected restaurant details.
         selectedRestaurant = await db.Restaurant
-        .FirstOrDefaultAsync(r => r.RestaurantID == restaurantId);
+            .FirstOrDefaultAsync(r => r.RestaurantID == restaurantId);
 
+        // Show modal if restaurant exists.
         if (selectedRestaurant != null)
         {
             showDetailsModal = true;
         }
     }
+    // Closes the restaurant details modal and clears selected data.
     private void CloseModal()
     {
         showDetailsModal = false;
         selectedRestaurant = null;
+    }
+
+    private async Task AccessDenied()
+    {
+        NavigationManager.NavigateTo("/Account/AccessDenied");
     }
 }
 

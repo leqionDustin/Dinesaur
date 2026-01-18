@@ -10,12 +10,21 @@
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
 @inject Dinesaur.Data.DinesaurContext DbContext
 
+
+
 <div style="display: flex; flex-direction:column">
+
+   <!--Header / Intro (Page Title + Rules)-->
+
+
     <div style="background-color: dimgrey; height: auto; text-align: left; display: flex; flex-direction: column; padding: 10px 30px;">
         <h1 style="padding-top: 100px; text-align: left">Pre - Order</h1>
         <h2>Order your dishes now and enjoy your food when you arrive!</h2>
         <h3>Note:Pre-orders can only be modified up to 24 hours before the scheduled date.<br /> Hence you are unable to edit it after @selectedReservation?.Date.Value.Date.AddDays(-1) </h3>
 
+      
+           <!--Category Filter Buttons (All + categories from Menu)-->
+        
         <div style="background-color: black; display: grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; border-radius: 15px;  padding: 10px;">
 @if (selectedMenu?.Catergories != null)
 {
@@ -34,9 +43,9 @@
             }
         </div>
     </div>
-    <div style="padding: 30px 30px; display:flex; flex-direction: column; gap: 10px; margin-top: 50px;">
-        
 
+    <!--Food Grid (Cards) + Quantity Controls-->
+    <div style="padding: 30px 30px; display:flex; flex-direction: column; gap: 10px; margin-top: 50px;">
         <div style=" display: grid; grid-template-columns:repeat(5, 1fr); gap: 30px; border-radius: 20px;  padding: 15px;">
             @if (food == null || food.Count == 0)
             {
@@ -75,6 +84,8 @@
 
         </div>
     </div>
+
+    <!--"Order List" Button (saves total cost then opens remarks popup)-->
     <div style=" display:flex;
        flex-direction:column;
        width: 200px;
@@ -106,6 +117,7 @@
 
     </div>
 
+    <!-- Food Details Popup (click outside to close)-->
     @if (showPopup && popupFood != null)
     {
         <div style="
@@ -168,6 +180,8 @@
             </div>
         </div>
     }
+
+    <!--Remarks Popup (shown after saving total cost)-->
     @if (showPopUpRemarks == true)
     {
     <div style="
@@ -220,6 +234,7 @@
 
 @code {
 
+    
 
     [Parameter]
     public int id { get; set; }
@@ -242,13 +257,21 @@
     private List<Food> food = new();
     private readonly Dictionary<int, int> itemCounts = new();
 
-
+   
+    // Initialization
+    // - Load reservation -> restaurant -> menu
+    // - Ensure preorder exists
+    // - Load menu foods
+    // - Load existing preorder items into itemCounts (resume previous selections)
+ 
     protected override async Task OnInitializedAsync()
     {
         selectedReservation = DbContext.Reservation.FirstOrDefault(x => x.ReservationID == id);
         selectedRestaurant = selectedReservation != null ? await DbContext.Restaurant.FirstOrDefaultAsync(r => r.RestaurantID == selectedReservation.RestaurantID) : null;
         selectedMenu = selectedRestaurant != null ? await DbContext.Menu.FirstOrDefaultAsync(m => m.RestaurantID == selectedRestaurant.RestaurantID) : null;
         var preOrder = await DbContext.PreOrder.FirstOrDefaultAsync(p => p.ReservationID == id);
+
+        // Auth guard: redirect unauthenticated users to login
         var authState = await Auth.GetAuthenticationStateAsync();
         var user = authState.User;
 
@@ -258,10 +281,12 @@
             NavigationManager.NavigateTo("/Account/Login");
             return;
         }
+                            
 
         if (selectedReservation == null)
             return;
 
+        // Create preorder record if it doesn't exist yet
         if (preOrder == null)
         {
             preOrder = new PreOrder
@@ -278,7 +303,7 @@
 
         preOrderID = preOrder.PreOrderID;
 
-
+        // Load foods for the selected menu
         if (selectedMenu != null)
         {
             food = await DbContext.Food
@@ -290,13 +315,10 @@
             food = new List<Food>(); // or leave empty
         }
 
-
+        // Load existing preorder items so the UI reflects previously chosen quantities
         var existingItems = await DbContext.PreOrderItem
            .Where(i => i.PreOrderID == preOrderID)
            .ToListAsync();
-
-        var existingItemsCat = selectedMenu?.Catergories;
-
 
 
 
@@ -304,7 +326,7 @@
             itemCounts[it.FoodID] = it.Quantity;
 
 
-
+        // Store customer id (AspNet user id) on Reservation model (page state)
         var aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         Reservation.CustomerID = aspNetUserId;
@@ -312,14 +334,19 @@
 
     }
 
+    // Calculates total cost based off PreOrderItems x Food cost
+    // Save to Preorder
+    // Open Remarks Popup
     private async Task Save(int id)
     {
         await using var db = await DbFactory.CreateDbContextAsync();
+
+        // Loads items 
         var items = await db.PreOrderItem
             .Where(i => i.PreOrderID == preOrderID)
             .ToListAsync();
 
-
+        // Sum total price by joining preorder items with food prices
         double total = 0;
         total = await (
     from poi in db.PreOrderItem
@@ -328,6 +355,8 @@
     select f.Cost * poi.Quantity
 ).SumAsync();
 
+
+        // Update preorder total cost
         var preOrder = await db.PreOrder.FirstAsync(p => p.PreOrderID == preOrderID);
         preOrder.Cost = total;
 
@@ -335,14 +364,12 @@
         await db.SaveChangesAsync();
 
         showPopUpRemarks = true;
-
-
-
-
-    }
+  }
 
 
     // Quantity helpers
+    // itemCounts is the single source of truth for quantities shown on screen
+    // - Inc/Dec update the cache, then persist to DB via AddtoPreOrder(...)
     private int GetCount(int foodId) => itemCounts.TryGetValue(foodId, out var v) ? v : 0;
 
     private async Task Inc(int foodId)
@@ -356,30 +383,37 @@
         itemCounts[foodId] = Math.Max(GetCount(foodId) - 1, 0);
         await AddtoPreOrder(foodId, GetCount(foodId));
     }
-
+    // Simple display helpers (kept as methods for readability / future changes)
     private string GetFoodName(Food f) => f.FoodName;       
     private decimal GetFoodPrice(Food f) => (decimal)f.Cost;
 
-    /*private int GetCountCat(int Categories) =>*/
+   
+    
+    // Persist Quantity Changes (DB)
+    //  If qty <= 0: remove item row
+    //  Else: insert new or update existing PreOrderItem
 
     async Task AddtoPreOrder(int foodId, int qty)
     {
         await using var db = await DbFactory.CreateDbContextAsync();
 
+        // Checks if this food item already exists in the preorder
         var existing = await db.PreOrderItem.FirstOrDefaultAsync(p =>
             p.PreOrderID == preOrderID &&
             p.FoodID == foodId);
 
+        // Remove item when quantity is 0
         if (qty <= 0)
         {
             if (existing != null)
             {
-                db.PreOrderItem.Remove(existing);   // or existing.Quantity = 0;
+                db.PreOrderItem.Remove(existing);  
                 await db.SaveChangesAsync();
             }
             return;
         }
 
+        // Add new item or update existing quantity
         if (existing == null)
         {
             db.PreOrderItem.Add(new PreOrderItem
@@ -397,11 +431,14 @@
         await db.SaveChangesAsync();
     }
 
+
+
     private void SelectCategory(string category)
     {
         selectedCategory = category;
     }
 
+    // Food Details Popup Controls
     private void OpenPopup(Food f)
     {
         popupFood = f;
@@ -413,6 +450,11 @@
         showPopup = false;
         popupFood = null;
     }
+
+    // Remarks Popup Flow
+    //  Save remarks onto PreOrder
+    //  Close popup
+    //  Navigate to OrderList page
     private async Task ClosePopupRemarks()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
