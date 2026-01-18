@@ -83,22 +83,12 @@
     </Authorized>
 
     <NotAuthorized>
-        <div style="
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        height:95vh;
-        color:white;
-        text-align:center;">
-
-            <h1 style="font-size:140px;">Access Denied</h1>
-            <p style="font-size:90px;">You must be an admin to view this page</p>
-        </div>
+        @AccessDenied()
     </NotAuthorized>
 </AuthorizeView>
 
 @code {
+    // Fields / State
     private string? displayName;
     private bool isLoading = true;
     private string? message;
@@ -106,6 +96,7 @@
     private List<Review> reviews = new();
     private HashSet<int> busyIds = new();
 
+    // Runs when the page loads and gets the admin's display name.
     protected override async Task OnInitializedAsync()
     {
         var user = (await Auth.GetAuthenticationStateAsync()).User;
@@ -114,6 +105,7 @@
         var aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         await using var db = await DbFactory.CreateDbContextAsync();
+
         var identityUser = await db.Users
             .Where(u => u.Id == aspNetUserId)
             .Select(u => u.Name)
@@ -122,8 +114,9 @@
         displayName = identityUser ?? user.Identity?.Name;
 
         await LoadReviewsAsync();
-
     }
+
+    // Loads published and reported reviews.
     private async Task LoadReviewsAsync()
     {
         isLoading = true;
@@ -132,14 +125,19 @@
         await using var db = await DbFactory.CreateDbContextAsync();
 
         reviews = await db.Review
-            .Where(r => r.Status == Review.ApprovalStatusReviews.Published || r.Status == Review.ApprovalStatusReviews.Reported)
+            .Where(r =>
+                r.Status == Review.ApprovalStatusReviews.Published ||
+                r.Status == Review.ApprovalStatusReviews.Reported)
             .ToListAsync();
+
         reviews.Sort((x, y) => Nullable.Compare<DateTime>(x.Date, y.Date));
 
         isLoading = false;
     }
 
 
+
+    // Updates a review’s status and removes it from the list.
     private async Task SetStatusAsync(int reviewId, Review.ApprovalStatusReviews newStatus)
     {
         busyIds.Add(reviewId);
@@ -175,6 +173,12 @@
             busyIds.Remove(reviewId);
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    // Navigate to Access Denied
+    private async Task AccessDenied()
+    {
+        NavigationManager.NavigateTo("/Account/AccessDenied");
     }
 
   

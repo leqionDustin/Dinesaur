@@ -39,14 +39,14 @@
                     max-width:800px;">
                     There are “@NewUsersCount” New Users today<br/>
                     There are “@pendingRestaurants” New Restaurants for review<br />
-                    There are “@pendingReviews” New Reviews for review
+                    There are “@PublishedReviews” New Reviews for review
                     
                 </div>
             </div>
 
             <!--Charts to visualise traffic on the site-->
             <div style="width:500px;height:400px;margin-left:auto;margin-top:30px;">
-                <h3 style="font-size:35px;">New Users (Last 7 Days)</h3>
+                <h3 style="font-size:35px;">New Users (Today)</h3>
                 <canvas id="newUsersChart"></canvas>
                 <h3 style="font-size:35px;">New Restaurants (Last 7 Days)</h3>
                 <canvas id="restaurantsChart"></canvas>
@@ -55,20 +55,9 @@
            
         </div>
     </Authorized>
-
+    <!-- If User Role Isnt Admin, redirect them to Access Denied--> 
     <NotAuthorized>
-        <div style="
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        height:95vh;
-        color:white;
-        text-align:center;">
-
-            <h1 style="font-size:140px;">Access Denied</h1>
-            <p style="font-size:90px;">You must be an admin to view this page</p>
-        </div>
+   @AccessDenied()
     </NotAuthorized>
 </AuthorizeView>
 
@@ -80,7 +69,7 @@
     private int NewUsersCount;
     private DateTime? sinceUtc;
     private int pendingRestaurants;
-    private int pendingReviews;
+    private int PublishedReviews;
     private string[] newUserLabels = Array.Empty<string>();
     private int[] newUserCounts = Array.Empty<int>();
     private string[] restaurantLabels = Array.Empty<string>();
@@ -89,9 +78,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Find the user's name in the database and then store it in displayName
 
         var user = (await Auth.GetAuthenticationStateAsync()).User;
-     
+
         var aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         await using var db = await DbFactory.CreateDbContextAsync();
@@ -102,41 +92,45 @@
 
         displayName = identityUser ?? user.Identity?.Name;
 
-        
-        var startOfTodayUtc = DateTime.UtcNow.Date;
 
-        if (sinceUtc != null)
-        {
+        // Find the count of users which have been created in the past 24 hours
+       
+         sinceUtc = DateTime.UtcNow.AddHours(-24);
+
             NewUsersCount = await db.Users
-                .CountAsync(u => u.CreatedAtUtc > startOfTodayUtc);
-        }
-        else
-        {
-            NewUsersCount = 0;
-        }
+                .CountAsync(u => u.CreatedAtUtc >= sinceUtc);
+  
 
+        // Find the count of Restaurants which are pending
         pendingRestaurants = await db.Restaurant
             .CountAsync(r => r.Status == Restaurant.ApprovalStatus.Pending);
-        pendingReviews = await db.Review
+
+        // Find the count of Reviews which have been published
+        PublishedReviews = await db.Review
             .CountAsync(rev => rev.Status == Review.ApprovalStatusReviews.Published);
 
 
-        var startUtc = DateTime.UtcNow.Date.AddDays(-6);     // 7 days incl today (UTC dates)
+        // Set Start and End dates for the past 7 days
+        var startUtc = DateTime.UtcNow.Date.AddDays(-6);     
         var endUtcExclusive = DateTime.UtcNow.Date.AddDays(1);
 
+
+        // Gets the number of users created on each of the last 7 days (UTC).
         var daily = await db.Users
             .Where(u => u.CreatedAtUtc >= startUtc && u.CreatedAtUtc < endUtcExclusive)
             .GroupBy(u => u.CreatedAtUtc.Date)
             .Select(g => new { Day = g.Key, Count = g.Count() })
             .ToListAsync();
 
-
+        // Create A Dictionary for each day
         var map = daily.ToDictionary(x => x.Day, x => x.Count);
 
+        // Create Labels for each day on the graph
         newUserLabels = Enumerable.Range(0, 7)
             .Select(i => startUtc.AddDays(i).ToString("dd MMM"))
             .ToArray();
 
+        // Gets the count from each day & when theres no users created it returns 0
         newUserCounts = Enumerable.Range(0, 7)
             .Select(i =>
             {
@@ -144,21 +138,26 @@
                 return map.TryGetValue(day, out var c) ? c : 0;
             })
             .ToArray();
-
+        // Rerender the component so data appears
         await InvokeAsync(StateHasChanged);
 
+
+        // Gets the number of Restaurants created on each of the last 7 days (UTC).
         var dailyRestaurants = await db.Restaurant
     .Where(r => r.CreatedAtUtc >= startUtc && r.CreatedAtUtc < endUtcExclusive)
     .GroupBy(r => r.CreatedAtUtc.Date)
     .Select(g => new { Day = g.Key, Count = g.Count() })
     .ToListAsync();
 
+        // Create A Dictionary for each day
         var restaurantMap = dailyRestaurants.ToDictionary(x => x.Day, x => x.Count);
 
+        // Create Labels for each day on the graph
         restaurantLabels = Enumerable.Range(0, 7)
             .Select(i => startUtc.AddDays(i).ToString("dd MMM"))
             .ToArray();
 
+        // Gets the count from each day & when theres no restaurants created it returns 0
         restaurantCounts = Enumerable.Range(0, 7)
             .Select(i =>
             {
@@ -173,16 +172,25 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Prevents the charts from being rendered more than once
         if (_chartRendered) return;
 
-        // only run when canvas is actually in the DOM + data is ready
+        // Ensure that the chart data has finished loading and
+        // that all required labels and values are available.
         if (newUserLabels.Length == 7 && newUserCounts.Length == 7)
         {
+            // Mark charts as rendered so this block does not execute again.
             _chartRendered = true;
+
+            // Invoke JavaScript functions to render the charts.
             await JS.InvokeVoidAsync("renderNewUsersChart", newUserLabels, newUserCounts);
             await JS.InvokeVoidAsync("renderRestaurantsChart", restaurantLabels, restaurantCounts);
         }
-}
+    }
+    private async Task AccessDenied()
+    {
+        NavigationManager.NavigateTo("/Account/AccessDenied");
+    }
 }
 
 

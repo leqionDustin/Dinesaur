@@ -16,6 +16,7 @@
 
 <div style="display: flex; flex-direction: column; padding: 30px; font-family: Consolas;">
 
+    <!-- Restaurant Name and Reservation Details-->
     <h1>@selectedRestaurant?.RestaurantName</h1>
     <h2 style=" text-align:center;font-size: 50px;">Reservation Summary</h2>
 
@@ -26,6 +27,7 @@
         <p><strong>Location:@selectedRestaurant?.Location</strong></p>
     </div>
 
+    <!-- List of the details of Pre-Ordered Dishes -->
     <strong style="margin-top: 30px;font-size:35px;color:white">Pre‑Ordered Dishes:</strong>
 
     <table style="width: 100%; border-collapse: collapse;">
@@ -61,9 +63,12 @@
         </tbody>
     </table>
 
+    <!--Shows total cost-->
     <p style="text-align: right; font-weight: bold; color:white;font-size:30px;">Total Cost: $@totalCost.ToString("F2")</p>
 
-    <strong style="margin-top: 30px;font-size:35px;color:white;">Reservation Bill:</strong>
+
+    <!-- Shows the details of the bill for PreOrder-->
+    <strong style="margin-top: 30px;font-size:35px;color:white;">Pre-Order Bill:</strong>
 
     <div style="text-align: right; color:white;font-size:20px;">
         <p>Pre‑Order Cost: $@totalCost.ToString("F2")</p>
@@ -73,6 +78,8 @@
         <p>Service Charge (10%): .00</p>
         <p style="font-weight: bold;font-size:40px;">Grand Total: $@totalCost.ToString("F2")</p>
     </div>
+
+    <!-- If on the page more than one day before, user can edit -->
     @if (CanEditPreOrder)
     {
         <button class="btn btn-success"
@@ -88,15 +95,16 @@
         </button>
     }
 
+    <!-- Restaurant Staff has back button, no confirm-->
     <AuthorizeView Roles="RestaurantStaff">
         <Authorized>
             <button class="btn btn-success" style="margin-top: 30px;" onclick="@Back">
                 Back
             </button>
         </Authorized>
-    
 
-    
+
+        <!-- User has confirm button, no back-->
    <NotAuthorized>
     <button class="btn btn-success" style="margin-top: 30px;" onclick="@SaveAndGoHome">
         Confirm
@@ -124,17 +132,34 @@
     Menu? selectedMenu;
     private DinesaurUser? role;
     private string? url = "/";
+
+    // Lightweight display model used to present ordered food items.
+    // This avoids exposing full database entities to the UI layer.
     private sealed class OrderRow
     {
         public string Dish { get; set; } = "";
         public double Price { get; set; }
         public int Quantity { get; set; }
     }
+
+    // Executes when the page loads.
+    // Loads reservation, restaurant, menu and pre-order data,
+    // validates authentication, and prepares the order summary.
     protected override async Task OnInitializedAsync()
     {
-        selectedReservation = DbContext.Reservation.FirstOrDefault(x => x.ReservationID == id);
-        selectedRestaurant = selectedReservation != null ? await DbContext.Restaurant.FirstOrDefaultAsync(r => r.RestaurantID == selectedReservation.RestaurantID) : null;
-        selectedMenu = selectedRestaurant != null ? await DbContext.Menu.FirstOrDefaultAsync(m => m.RestaurantID == selectedRestaurant.RestaurantID) : null;
+        selectedReservation = DbContext.Reservation
+            .FirstOrDefault(x => x.ReservationID == id);
+
+        selectedRestaurant = selectedReservation != null
+            ? await DbContext.Restaurant
+                .FirstOrDefaultAsync(r => r.RestaurantID == selectedReservation.RestaurantID)
+            : null;
+
+        selectedMenu = selectedRestaurant != null
+            ? await DbContext.Menu
+                .FirstOrDefaultAsync(m => m.RestaurantID == selectedRestaurant.RestaurantID)
+            : null;
+
         var authState = await Auth.GetAuthenticationStateAsync();
         var user = authState.User;
 
@@ -144,13 +169,15 @@
             return;
         }
 
-        var aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var aspNetUserId = user
+            .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         Reservation.CustomerID = aspNetUserId;
 
         await using var db = await DbFactory.CreateDbContextAsync();
 
-        var preOrder = await db.PreOrder.FirstOrDefaultAsync(p => p.ReservationID == id);
+        var preOrder = await db.PreOrder
+            .FirstOrDefaultAsync(p => p.ReservationID == id);
 
         if (preOrder == null)
             return;
@@ -158,28 +185,29 @@
         preOrderID = preOrder.PreOrderID;
 
         orderRows = await (
-        from poi in db.PreOrderItem
-        join f in db.Food on poi.FoodID equals f.FoodID
-        where poi.PreOrderID == preOrderID.Value
-        select new OrderRow
-        {
-            Dish = f.FoodName,
-            Price = f.Cost,
-            Quantity = poi.Quantity
-        }
-    ).ToListAsync();
+            from poi in db.PreOrderItem
+            join f in db.Food on poi.FoodID equals f.FoodID
+            where poi.PreOrderID == preOrderID.Value
+            select new OrderRow
+            {
+                Dish = f.FoodName,
+                Price = f.Cost,
+                Quantity = poi.Quantity
+            }
+        ).ToListAsync();
 
         totalCost = preOrder.Cost;
+
         var email = await db.Users
-        .Where(u => u.Id == aspNetUserId)
-        .Select(u => u.Email)
-        .SingleOrDefaultAsync();
+            .Where(u => u.Id == aspNetUserId)
+            .Select(u => u.Email)
+            .SingleOrDefaultAsync();
+
         if (email != null)
         {
-            var userrole = await UserManager.FindByEmailAsync(email);
-            role = userrole;
-           
+            role = await UserManager.FindByEmailAsync(email);
         }
+
         if (await UserManager.IsInRoleAsync(role, "RestaurantStaff"))
         {
             url = "/Restaurant/Bookings";
@@ -187,31 +215,35 @@
         else if (await UserManager.IsInRoleAsync(role, "User"))
         {
             url = "/MyBookings";
-
         }
-        
     }
 
+    // Confirms the pre-order and displays a confirmation message.
     private async Task SaveAndGoHome()
     {
         StateHasChanged();
+
         await using var db = await DbFactory.CreateDbContextAsync();
         await db.SaveChangesAsync();
+
         await JS.InvokeVoidAsync("alert", "Pre-Order is Confirmed!");
         NavigationManager.NavigateTo("#");
-
-
     }
+
+    // Navigates back to the restaurant booking page.
     private async Task Back()
     {
         NavigationManager.NavigateTo("/Restaurant/Bookings");
     }
+
+    // Redirects the user to the pre-order editing page.
     private async Task EditPreOrdering()
     {
-
         NavigationManager.NavigateTo($"/Reservation/Create/PreOrder/{id}");
-
     }
+
+    // Deletes the pre-order and all associated food items.
+    // Resets local state and redirects the user to their bookings.
     private async Task DeletePreOrder()
     {
         if (preOrderID == null)
@@ -219,35 +251,31 @@
 
         await using var db = await DbFactory.CreateDbContextAsync();
 
-
         var preOrder = await db.PreOrder
             .FirstOrDefaultAsync(p => p.PreOrderID == preOrderID.Value);
 
         if (preOrder == null)
             return;
 
-
         var items = await db.PreOrderItem
             .Where(i => i.PreOrderID == preOrderID.Value)
             .ToListAsync();
 
         db.PreOrderItem.RemoveRange(items);
-
-
         db.PreOrder.Remove(preOrder);
 
         await db.SaveChangesAsync();
-
 
         orderRows.Clear();
         totalCost = 0;
         preOrderID = null;
 
         await JS.InvokeVoidAsync("alert", "Your Pre-Order Has Been Deleted");
-
         NavigationManager.NavigateTo("/MyBookings");
-
     }
+
+    // Determines whether the pre-order can still be edited.
+    // Editing is disabled within 24 hours of the reservation date.
     private bool CanEditPreOrder
     {
         get
@@ -255,19 +283,12 @@
             if (selectedReservation?.Date == null)
                 return false;
 
-
             var reservationDate = selectedReservation.Date.Value.Date;
-
-
             var cutoff = reservationDate.AddDays(-1);
-
 
             return DateTime.Now < cutoff;
         }
     }
-
-
-        
-    }
+}
 
 
