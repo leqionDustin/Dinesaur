@@ -11,6 +11,7 @@
 @inject Dinesaur.Data.DinesaurContext DbContext
 
 <div style="display: flex; flex-direction:column">
+    @*Banner*@
     <div id="start"
          class="dark-bg" style="height: auto; text-align: left; display: flex; flex-direction: column; padding-left: 50px;background-image: url(@selectedRestaurant.Logo[0])">
     <h1 style="padding-top: 100px; text-align: left">@selectedRestaurant?.RestaurantName</h1>
@@ -26,12 +27,13 @@
             <h3>Email: @selectedRestaurant?.Email</h3>
         </div>
         <div>
-            <a style="padding: 20px; margin: 300px 50px; font-size: 25px; font-weight: bold; background-color: black; color: white; border-radius: 15px;" href="/Reservation/Create/@selectedRestaurant.RestaurantID"> Book Now</a>
+            <a style="padding: 20px; margin: 300px 50px; font-size: 25px; font-weight: bold; background-color: white; color: black; border-radius: 15px;" href="/Reservation/Create/@selectedRestaurant.RestaurantID"> Book Now</a>
 
         </div>
     </div>
 </div>
 <div style="margin: 20px 80px;">
+    @*Show Dishes*@
     <h3>Top Selling Dishes</h3>
         
             <div style="display: grid; gap: 25px; grid-template-columns: repeat(5,1fr) ;  color:white; font-size: 25px;">
@@ -70,6 +72,7 @@
         }
     </div>
 </div>
+@*Show Review*@
     <div style="margin: 20px 80px;">
         <div style="display: flex; gap: 15px; align-content: baseline"> 
             <h3>Reviews</h3>
@@ -140,7 +143,7 @@
         </div>
     </div>
 
-    
+    @*Show Map Location*@
     <div style="margin: 20px 80px;">
         <div style="display: flex; gap: 15px; align-content: baseline; flex-direction: column"> 
         <h3>Location</h3>
@@ -156,7 +159,7 @@
     </div>
         
         
-
+    @*Show Pop Up of Food Item*@
     @if (showPopup && popupFood != null)
     {
         <div style="position:fixed; inset:0; background:rgba(0,0,0,0.75);
@@ -257,6 +260,7 @@
 
     }
 
+    @*Show Report Pop Up*@
     @if (reportPopUp)
     {
         <div class="modal-backdrop" @onclick="CloseReportPopUp">
@@ -274,6 +278,7 @@
 
     }
 
+    @*Show Report Confirmation Pop Up*@
     @if (reportConfirmationPopUp)
     {
         <div class="modal-backdrop" @onclick="CloseReportConfirmationPopUp">
@@ -306,6 +311,7 @@
     private Food? popupFood;
     private int ratingTab = 0;
     private List<Review> reviewsTab = new();
+    //On Initialize, Get Restaurant, Menu, Food and Reviews
     protected override async Task OnInitializedAsync()
     {
         selectedRestaurant = DbContext.Restaurant.FirstOrDefault(x => x.RestaurantID == id);
@@ -318,19 +324,24 @@
         foods = await DbContext.Food.Where(f => f.MenuID == selectedMenu.MenuID).ToListAsync();
         reviews = await DbContext.Review.Where(r => r.RestaurantID == selectedRestaurant.RestaurantID).ToListAsync();
     }
+    //Open and Close Food Popup
     private void OpenPopup(Food f)
     {
         popupFood = f;
         showPopup = true;
     }
 
+    //Close Food Popup
     private void ClosePopup()
     {
         showPopup = false;
         popupFood = null;
     }
 
+
     public bool reviewPopUp = false;
+
+    //Open and Close Review Pop Up
     private void OpenReviewPopUp(Review review)
     {
         selectedReview = review;
@@ -349,6 +360,8 @@
     }
 
     public bool reportPopUp = false;
+
+    //Open and Close Report Pop Up
     private void OpenReportPopUp()
     {
         reportPopUp = true;
@@ -359,6 +372,7 @@
         reportPopUp = false;
     }
 
+    //Report Review
     private async Task ReportReview()
     {
         if (selectedReview != null)
@@ -373,6 +387,8 @@
     }
 
     public bool reportConfirmationPopUp = false;
+
+    //Open and Close Report Confirmation Pop Up
     private void OpenReportConfirmationPopUp()
     {
         reportConfirmationPopUp = true;

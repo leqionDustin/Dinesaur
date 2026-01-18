@@ -1,4 +1,4 @@
-﻿@*Home Page For Dinesaur Restaurants*@
+﻿@*Create Review*@
 
 
 @page "/Review/Create/{id:int}"
@@ -10,6 +10,7 @@
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
 @inject Dinesaur.Data.DinesaurContext DbContext
 <div style="display: flex; flex-direction:column">
+    @*Banner*@
     <div style="background-color: dimgrey; height: auto; text-align: left; display: flex; flex-direction: column; padding: 20px;">
         <h1 style="padding-top: 100px; text-align: left">@selectedRestaurant.RestaurantName</h1>
         <h2>
@@ -18,6 +19,7 @@
     </div>
     <div style="padding: 50px 100px">
         <div>
+            @*Get Review Information*@
             <EditForm Model="@review" OnValidSubmit="AddReview" FormName="AddReview">
                 <DataAnnotationsValidator />
                 
@@ -56,6 +58,7 @@
         </div>
     </div>
     
+    @*Show Review Details*@
     @if (reviewPopUp)
     {
         <div class="modal-backdrop">
@@ -123,6 +126,7 @@
     [Parameter]
     public int id { get; set; }
 
+    // Load Reservation and Restaurant Details
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
@@ -145,6 +149,7 @@
 
     }
 
+    // Add Review to Database
     private async Task AddReview()
     {
         review.Date = DateTime.Now;
@@ -175,11 +180,14 @@
     }
 
     public bool reviewPopUp = false;
+
+    // Show Review Created Pop Up
     private void OpenReviewCreatedPopUp()
     {
         reviewPopUp = true;
     }
 
+    // Close Review Created Pop Up
     private void CloseReviewCreatedPopUp()
     {
         reviewPopUp = false;
@@ -192,6 +200,7 @@
         review.Rating = value;
     }
 
+    // Check if Reservation Exists
     private bool ReservationExists(int reservationid)
     {
         using var context = DbFactory.CreateDbContext();

@@ -1,4 +1,4 @@
-﻿@*Edit / Delete Reservation*@
+﻿@*Edit / Delete Review*@
 
 
 @page "/Review/Edit/{id:int}"
@@ -9,12 +9,14 @@
 @inject AuthenticationStateProvider Auth
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
 <div style="display: flex; flex-direction:column">
+    @*Banner*@
     <div style="background-color: dimgrey; height: auto; text-align: left; display: flex; flex-direction: column; padding-left: 50px;">
         <h1 style="padding-top: 100px; text-align: left">@selectedRestaurant?.RestaurantName</h1>
                 <h2>Edit Review</h2>
     </div>
     <div style="padding: 50px 100px">
         <div>
+            @* Edit Information of Review*@
             <EditForm Model="@selectedReview" OnValidSubmit="EditReview" FormName="EditReview">
                 <DataAnnotationsValidator />
 
@@ -45,16 +47,18 @@
 
                 <ValidationSummary />
 
+                
                 <div style="display: flex; justify-content: flex-end; gap: 10px;">
                     <a class="secondary-btn" href="/MyBookings?from=completed">Back</a>
                     <button type="submit" class="primary-btn">Update</button>
-                    <a class="danger-btn" @onclick=OpenCancelReviewPopUp">Cancel Booking</a>
+                    <a class="danger-btn" @onclick=OpenCancelReviewPopUp">Remove Review</a>
                 </div>
             </EditForm>
         </div>
     </div>
 </div>
 
+@*Show Review Updated Pop Up*@
 @if (reviewUpdatedPopUp)
 {
     <div class="modal-backdrop">
@@ -126,6 +130,7 @@
 
 
 }
+@*Show Cancel Confirmation Pop Up*@
 @if (cancelReviewConfirmationPopUp)
 {
     <div class="modal-backdrop">
@@ -149,6 +154,7 @@
     [Parameter]
     public int id { get; set; }
 
+    //Load Review, Reservation and Restaurant Information
     protected override async Task OnParametersSetAsync()
     {
         using var context = DbFactory.CreateDbContext();
@@ -181,11 +187,13 @@
     }
 
     public bool reviewUpdatedPopUp = false;
+    //Show Review Updated Pop Up
     private void OpenReviewUpdatedPopUp()
     {   
         reviewUpdatedPopUp = true;
     }
 
+    //Edit Review in Database
     private async Task EditReview()
     {  
         using var context = DbFactory.CreateDbContext();
@@ -198,17 +206,19 @@
 
     public bool cancelReviewPopUp = false;
 
+    // Show Cancel Pop Up
     private void OpenCancelReviewPopUp()
     {
         cancelReviewPopUp = true;
     }
 
-
+    // Close Cancel Pop Up
     private void CloseCancelReviewPopUp()
     {
         cancelReviewPopUp = false;
     }
 
+    // Confirm Cancel Review
     private async Task ConfirmCancel()
     {
         using var context = DbFactory.CreateDbContext();
@@ -222,12 +232,13 @@
 
     public bool cancelReviewConfirmationPopUp = false;
 
+    // Show Cancel Confirmation Pop Up
     private void OpenCancelReviewConfirmationPopUp()
     {
         cancelReviewConfirmationPopUp = true;
     }
 
-
+    // Close Cancel Confirmation Pop Up
     private void CloseCancelReviewConfirmationPopUp()
     {
         cancelReviewConfirmationPopUp = false;

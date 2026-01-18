@@ -217,6 +217,9 @@
         </div>
 
     }
+
+    
+    @*Show Cancel Confirmation Pop Up*@
     @if (cancelReservationConfirmationPopUp)
     {
         <div class="modal-backdrop" @onclick="CloseCancelReservationConfirmationPopUp">
@@ -245,7 +248,7 @@
     private string aspNetUserId;
     private bool? hasRestaurant;
 
-    
+    // Fetch Data on Load*@
     protected override async Task OnParametersSetAsync()
     {
         @*Get Logged In User Info*@
@@ -280,7 +283,7 @@
 
         GetBookings(1);
 
-
+        //Navigate to specific tab based on query parameter
         switch (query["to"])
         {
             case "new": {
@@ -350,17 +353,19 @@
 
     public bool showCancelReservation = false;
 
+    //Show Cancel Reservation Pop Up
     private void ShowCancelReservation()
     {
         showCancelReservation = true;
     }
 
-
+    //Close Cancel Reservation Pop Up
     private void CloseCancelReservation()
     {
         showCancelReservation = false;
     }
 
+    // Cancel Reservation
     private async Task CancelReservation(int state)
     {
         if (state == 0)
@@ -380,6 +385,7 @@
         OpenCancelReservationConfirmationPopUp();
     }
 
+    //Get Bookings based on Tab Selected
     private async Task GetBookings(int tab)
     {
         switch (tab)
@@ -410,11 +416,13 @@
         }
     }
 
+    //View Pre-Order Receipt
     private async Task ViewPreOrderReceipt()
     {
         NavigationManager.NavigateTo($"/Reservation/OrderList/{SelectedReservation.ReservationID}");
     }
 
+    //Change Reservation Status
     private async Task ChangeReservationStatus()
     {
         
@@ -440,11 +448,12 @@
     }
 
     public bool cancelReservationConfirmationPopUp = false;
+    //Show Cancel Reservation Confirmation Pop Up
     private void OpenCancelReservationConfirmationPopUp()
     {
         cancelReservationConfirmationPopUp = true;
     }
-
+    //Close Cancel Reservation Confirmation Pop Up
     private void CloseCancelReservationConfirmationPopUp()
     {
         cancelReservationConfirmationPopUp = false;

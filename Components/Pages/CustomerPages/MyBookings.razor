@@ -154,9 +154,18 @@
                         case Reservation.ReservationStatus.Completed:
                             if (SelectedReservation.ReviewID != null)
                             {
+                                if (SelectedReview.Status == Review.ApprovalStatusReviews.Removed)
+                                {
+                                    <a class="danger-btn">
+                                        Review Removed
+                                    </a>
+                                }
+                                else { 
                                 <a class="primary-btn" @onclick="OpenReviewPopUp">
-                                    View Review </a>                         
-                            } else
+                                    View Review </a>   
+                                }
+                            }
+                            else 
                             {
                                 <a class="primary-btn" href="/Review/Create/@SelectedReservation.ReservationID">Leave a Review</a>
                             }
@@ -233,7 +242,7 @@
         <div class="confirm-overlay" @onclick="() => showEditDenied = false">
             <div class="confirm-modal" @onclick:stopPropagation>
                 <h2 style="color: #88E788">Unable to Edit</h2>
-                <p>Booking cannot be edited less then 3 days from Day of Booking</p>
+                <p>Booking cannot be edited less then an hour from Booking</p>
                 <div class="modal-buttons">
                     <button class="secondary-btn" @onclick="() => showEditDenied = false">Close</button>
                 </div>
@@ -241,7 +250,7 @@
         </div>
     }
 
-    @*Show Cancel Confirm Pop Up*@
+    @*Show Cancel Reservation Confirm Pop Up*@
     @if (showCancelReservation)
     {
         <div class="modal-backdrop" @onclick="CloseCancelReservation">
@@ -259,6 +268,7 @@
 
     }
 
+    @*Show Cancel Review Confirm Pop Up*@
     @if (showCancelReview)
     {
         <div class="modal-backdrop" @onclick="CloseCancelReview">
@@ -276,6 +286,7 @@
 
     }
 
+    @*Show Confirmation Of Reservation*@
     @if (cancelReservationConfirmationPopUp)
     {
         <div class="modal-backdrop" @onclick="CloseCancelReservationConfirmationPopUp">
@@ -291,6 +302,7 @@
 
     }
 
+    @*Show Confirmation Of Review Removal*@
     @if (removeReviewConfirmationPopUp)
     {
         <div class="modal-backdrop" @onclick="CloseRemoveReviewConfirmationPopUp">
@@ -309,13 +321,12 @@
 
 
 @code {
+
     private List<Reservation> userBookings = new();
     private List<Review> userReviews = new();
     private List<Restaurant> restaurants;
     private string aspNetUserId;
 
-
-    
     protected override async Task OnParametersSetAsync()
     {
         @*Get Logged In User Info*@
@@ -339,6 +350,7 @@
         
         StateHasChanged();
 
+        @*Check for Query String to determine which tab to open*@
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
 
@@ -372,6 +384,8 @@
     {
         SelectedRestaurant = restaurants.Find(r => r.RestaurantID == reservation.RestaurantID);
         SelectedReservation = reservation;
+        using var context = DbFactory.CreateDbContext();
+        SelectedReview = context.Review.FirstOrDefault(r => r.ReviewID == SelectedReservation.ReviewID);
         ShowPopUp = true;
     }
 
@@ -388,7 +402,7 @@
     @*Check Edit Eligibility*@
     private void EditEligibility()
     {
-        if(SelectedReservation.Date - DateTime.Now > TimeSpan.FromDays(3))
+        if(SelectedReservation.Date - DateTime.Now > TimeSpan.FromHours(1))
         {
             NavigationManager.NavigateTo($"/Reservation/Edit/{SelectedReservation.ReservationID}");
         }
@@ -400,17 +414,19 @@
 
     public bool showCancelReservation = false;
 
+    @*Show Cancel Reservation*@
     private void ShowCancelReservation()
     {
         showCancelReservation = true;
     }
 
-
+    @*Close Cancel Reservation*@
     private void CloseCancelReservation()
     {
         showCancelReservation = false;
     }
 
+    @*Remove Reservation From Database*@
     private async Task CancelReservation()
     {
         using var context = DbFactory.CreateDbContext();
@@ -423,17 +439,19 @@
 
     public bool showCancelReview = false;
 
+    @*Show Cancel Review Pop Up*@
     private void ShowCancelReview()
     {
         showCancelReview= true;
     }
 
-
+    @*Close Cancel Review Pop Up*@
     private void CloseCancelReview()
     {
         showCancelReview = false;
     }
 
+    @*Remove Review From Database*@
     private async Task CancelReview()
     {
         using var context = DbFactory.CreateDbContext();
@@ -448,6 +466,7 @@
 
     private string userSelect = "Upcoming";
 
+    @*Get Bookings Based on Tab Select*@
     private async Task GetBookings(int tab)
     {
         switch (tab)
@@ -471,29 +490,28 @@
     }
 
     public bool reviewPopUp = false;
+
+    @*Show Review*@
     private void OpenReviewPopUp()
     {
-        SelectedReview = userReviews.Find(r => r.ReviewID == SelectedReservation.ReviewID);
         reviewPopUp = true;
     }
 
+    @*Close Review*@
     private void CloseReviewPopUp()
     {
         reviewPopUp = false;
-        SelectedReview = null;
-    }
-
-    private async Task ViewPreOrderReceipt()
-    {
-        NavigationManager.NavigateTo($"/Reservation/OrderList/{SelectedReservation.ReservationID}");
     }
 
     public bool cancelReservationConfirmationPopUp = false;
+
+    @*Show Confirmation of Reservation Cancel*@
     private void OpenCancelReservationConfirmationPopUp()
     {
         cancelReservationConfirmationPopUp = true;
     }
 
+    @*Close Confirmation of Reservation Cancel*@
     private void CloseCancelReservationConfirmationPopUp()
     {
         cancelReservationConfirmationPopUp = false;
@@ -501,13 +519,22 @@
     }
 
     public bool removeReviewConfirmationPopUp = false;
+
+    @*Show Confirmation of Review Removal*@
     private void OpenRemoveReviewConfirmationPopUp()
     {
         removeReviewConfirmationPopUp = true;
     }
 
+    @*Close Confirmation of Review Removal*@
     private void CloseRemoveReviewConfirmationPopUp()
     {
         removeReviewConfirmationPopUp = false;
+    }
+
+    @*To PreOrder*@
+    private async Task ViewPreOrderReceipt()
+    {
+        NavigationManager.NavigateTo($"/Reservation/OrderList/{SelectedReservation.ReservationID}");
     }
 }

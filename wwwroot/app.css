@@ -12,6 +12,7 @@ html, body {
 }
 
 a, .btn-link {
+    font-size: 15px;
     color: #006bb7;
 }
 
@@ -19,6 +20,7 @@ a, .btn-link {
     color: #fff;
     background-color: #1b6ec2;
     border-color: #1861ac;
+    font-size: 15px;
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
@@ -71,11 +73,13 @@ h1:focus {
 }
 
     .nav-link:hover {
-        background-color: white; 
-        color: black; 
+        font-size: 20px;
+        background-color: white;
+        color: black;
         cursor: pointer;
     }
     .nav-link.active {
+        font-size: 20px;
         background-color: #222;
         color: #ffd700;
     }

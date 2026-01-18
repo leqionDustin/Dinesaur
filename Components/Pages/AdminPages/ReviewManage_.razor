@@ -1,181 +1,311 @@
-﻿@*Admin Restaurant Approval Page*@
-@page "/Admin/reviews/manage"
-@rendermode InteractiveServer
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Identity
+﻿@*Users View Their Bookings*@
+
+@*Page Link*@
+@page "/admin/reviews/manage"
+
+@*Imports*@
 @using Dinesaur.Domain
 @using Microsoft.EntityFrameworkCore
+@rendermode InteractiveServer
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider Auth
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
-@inject Dinesaur.Data.DinesaurContext DbContext
-@inject UserManager<Dinesaur.Data.DinesaurUser> UserManager
 
-<AuthorizeView Roles="Administrator">
-    <Authorized>
-        <!-- MAIN PANEL -->
-        <div style="
-            width: 100%;
-            color: white;
-            padding: 50px;
-            align-items: center;">
+@*Container*@
+<div style="display: flex; flex-direction:column">
 
-            <div style="display: flex; gap: 25px; height: 400px; align-items: center; justify-content: left">
-                <div>
-                    <h1 style="text-align: left">Welcome,</h1>
-                    <h1 style="text-align: left">@displayName!</h1>
+    @*Banner*@
+    <div style="background-color: black; height: auto; text-align: left; display: flex; flex-direction: column; padding: 20px; background-color: rgb(0,0,0,60%)">
+        <h1 style="margin-top: 100px; margin-bottom: 20px; text-align: left">Reviews</h1>
+        <div style="background-color: white; display: grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; border-radius: 10px;  padding: 5px; width: 50%;">
+
+            <a style="background-color: darkred;
+                        color:white ;
+                        border-radius: 5px;
+                        padding: 10px;
+                        font-weight:bold;
+                        text-align: center"
+               @onclick="() => GetBookings(1)">
+                Reported
+            </a>
+
+            <a style="background-color: #24462C;
+                        color:white ;
+                        border-radius: 5px;
+                        padding: 10px;
+                        font-weight:bold;
+                        text-align: center"
+               @onclick="() => GetBookings(2)">
+                Published
+            </a>
+
+            <a style="background-color: darkgrey;
+                        color:black ;
+                        border-radius: 5px;
+                        padding: 10px;
+                        font-weight:bold;
+                        text-align: center"
+               @onclick="() => GetBookings(3)">
+                Removed
+            </a>
+        </div>
+    </div>
+
+    
+
+    @*Reviews Displayed Here*@
+    <div style="display: flex; gap: 25px; flex-direction: column; padding: 50px;">
+        @if (ReviewTab.Count == 0)
+        {
+            <h2><em>No @tabHeader Reviews</em></h2>
+            
+        }
+
+        else
+        {
+            @*Display Reviews Upcoming*@
+            <h2 style="font-weight: bold"> @tabHeader Bookings</h2>
+            @foreach (var review in ReviewTab)
+            {
+                @*Pull Restaurant Info*@
+                var restaurant = restaurants.Find(r => r.RestaurantID == review.RestaurantID);
+                using var context = DbFactory.CreateDbContext();
+                var user = context.Users.ToList().Find(u => u.Id == review.CustomerID);
+                <a @onclick="() => OpenReviewPopUp(review)">
+                    <div style="z-index: 1000; position: relative; cursor: pointer;">
+                        <div style="width: 100%; height: auto; background-color: #386641; border-radius: 15px; pointer-events: none; padding: 20px;">
+                            <div style="display: grid; grid-template-columns: 90% 1fr;">
+                                <div>
+                                    <h4 style="font-weight: bold; color: #88E788">@review.ReviewTitle</h4>
+                                    <p style="color:white">
+                                        @user <br />
+                                        @review.Date.ToString("dd MMMM")<br />
+                                        
+                                    </p>
+                                    <p style="color: yellow">@review.Rating ★ </p>
+                                </div>
+                                <div style="display: flex; height: 100%; justify-content: center;">
+                                  
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            }
+        }
+        }
+    </div>
+
+    
+    @*Show Review Pop Up*@
+    @if (reviewPopUp)
+    {
+
+        <div class="modal-backdrop" @onclick="CloseReviewPopUp">
+            <div class="modal-card" @onclick:stopPropagation>
+                <button class="close-btn" @onclick="CloseReviewPopUp">✕</button>
+                <div style="display: flex; gap: 20px; align-items: baseline">
+                    <h2 style="font-weight: bold; color: #88E788">@selectedReview.ReviewTitle</h2>
+                    <div style="display: flex; gap: 5px; align-items: baseline">
+                        @for (int i = 1; i <= selectedReview.Rating; i++)
+                        {
+                            <h5 style="color: yellow; font: bold">★</h5>
+                        }
+                    </div>
+
+                </div>
+
+                <div style="display: flex; gap: 30px;">
+                    <div style="display: flex; flex-direction:column">
+                        <h6 style="font-weight: bold">Diner:</h6>
+                        <h6 style="font-weight: bold">Posted On:</h6>
+                    </div>
+                    <div style="display: flex; flex-direction:column">
+                        <h6> @selectedUser.DinesaurUserName </h6>
+                        <h6>@selectedReview.Date.ToString("dd MMMM yyyy")</h6>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="reservation-detail">
+                        <span class="reservation-label">Description:</span>
+                    </div>
+                    <p style="color: white; border-bottom: 1px solid; padding: 5px;">
+                        @(string.IsNullOrWhiteSpace(selectedReview.Description) ? "N/A" : selectedReview.Description)
+                    </p>
+                </div>
+                <div class="modal-buttons">
+                    <a class="secondary-btn" @onclick="CloseReviewPopUp">
+                        Back
+                    </a>
+                    @if (selectedReview.Status != Review.ApprovalStatusReviews.Removed){
+                        <a class="danger-btn" @onclick="ShowCancelReview">
+                            Remove
+                        </a>
+                    }
                 </div>
             </div>
-            <div style="margin-top:40px;">
-                <h2 style="font-size:70px;">Reported Reviews</h2>
+        </div>
 
-                @if (isLoading)
-                {
-                    <p style="font-size:50px;">Loading...</p>
-                }
-                else if (reviews.Count == 0)
-                {
-                    <p style="font-size:50px;">No reviews awaiting approval.</p>
-                }
-                else
-                {
-                    <table style="width:100%; border-collapse:collapse; margin-top:20px;">
-                        <thead>
-                            <tr style="border-bottom:2px solid #444; font-size:35px;">
-                                <th style="padding:14px; text-align:left;">Review Title</th>
-                                <th style="padding:14px; text-align:left;">Description</th>
-                                <th style="padding:14px; text-align:left;">Rating</th>
-                                <th style="padding:14px; text-align:left;">Actions</th>
-                            </tr>
-                        </thead>
+    }
 
-                        <tbody>
-                            @foreach (var r in reviews)
-                            {
-                                <tr style="border-bottom:1px solid #333; font-size:32px;">
-                                    <td style="padding:14px;">@r.ReviewTitle</td>
-                                    <td style="padding:14px;">@r.Description</td>
-                                    <td style="padding:14px;">@r.Rating</td>
+    @*Show Cancel Review Confirm Pop Up*@
+    @if (showCancelReview)
+    {
+        <div class="modal-backdrop" @onclick="CloseCancelReview">
 
-                                    <td style="padding:20px;">
-                                        <div style=" display:flex; gap:30px">
-                                            <button style="padding:12px 16px; font-size:25px; cursor:pointer; margin-right:10px;"
-                                                    disabled="@busyIds.Contains(r.ReviewID)"
-                                                    @onclick="() => SetStatusAsync(r.ReviewID, Review.ApprovalStatusReviews.Removed)">
-                                                Remove
-                                            </button>
-                                          
-
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-
-                @if (!string.IsNullOrWhiteSpace(message))
-                {
-                    <p style="margin-top:18px; font-size:28px;">@message</p>
-                }
+            <div class="modal-card" @onclick:stopPropagation>
+                <button class="close-btn" @onclick="CloseCancelReview">✕</button>
+                <h2 style="color: #88E788">Remove Review:</h2>
+                <p style="color: white">Are you sure you want to remove this review?</p>
+                <div class="modal-buttons">
+                    <button class="danger-btn" @onclick="CancelReview">Yes</button>
+                    <button class="secondary-btn" @onclick="CloseCancelReview">No</button>
+                </div>
             </div>
         </div>
-    </Authorized>
 
-    <NotAuthorized>
-        <div style="
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        height:95vh;
-        color:white;
-        text-align:center;">
+    }
 
-            <h1 style="font-size:140px;">Access Denied</h1>
-            <p style="font-size:90px;">You must be an admin to view this page</p>
+    @*Show Confirmation Of Review Removal*@
+    @if (removeReviewConfirmationPopUp)
+    {
+        <div class="modal-backdrop">
+
+            <div class="modal-card" @onclick:stopPropagation>
+                <h2 style="color: #88E788">Review Removed</h2>
+                <p style="color: white">Booking has been successfully removed.</p>
+                <div class="modal-buttons">
+                    <button class="secondary-btn" @onclick="CloseRemoveReviewConfirmationPopUp">Back</button>
+                </div>
+            </div>
         </div>
-    </NotAuthorized>
-</AuthorizeView>
+
+    }
+</div>
+
 
 @code {
-    private string? displayName;
-    private bool isLoading = true;
-    private string? message;
 
+    private List<Reservation> userBookings = new();
     private List<Review> reviews = new();
-    private HashSet<int> busyIds = new();
+    private List<Restaurant> restaurants;
+    private string aspNetUserId;
+    private List<Reservation> reservations = new();
+    private Review selectedReview;
+    private Reservation selectedReservation;
+    private String tabHeader = "Reported";
+    private List<Review> ReviewTab = new List<Review>();
+    DinesaurUserModel? selectedUser;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        var user = (await Auth.GetAuthenticationStateAsync()).User;
-        if (!user.Identity?.IsAuthenticated ?? true) return;
+        @*Get Logged In User Info*@
+        var authState = await Auth.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
 
-        var aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            NavigationManager.NavigateTo("/Account/Login");
+            return;
+        }
+        aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var identityUser = await db.Users
-            .Where(u => u.Id == aspNetUserId)
-            .Select(u => u.Name)
-            .SingleOrDefaultAsync();
+        @*Fetch Reservations and Restaurants from Database*@
+        using var context = DbFactory.CreateDbContext();
+        reviews = await context.Review.ToListAsync();
+        restaurants = await context.Restaurant.ToListAsync();
+        reservations = await context.Reservation.ToListAsync();
 
-        displayName = identityUser ?? user.Identity?.Name;
 
-        await LoadReviewsAsync();
+        StateHasChanged();
 
     }
-    private async Task LoadReviewsAsync()
+
+    
+    public bool showCancelReview = false;
+
+    @*Show Cancel Review Pop Up*@
+    private void ShowCancelReview()
     {
-        isLoading = true;
-        message = null;
-
-        await using var db = await DbFactory.CreateDbContextAsync();
-
-        reviews = await db.Review
-            .Where(r => r.Status == Review.ApprovalStatusReviews.Published || r.Status == Review.ApprovalStatusReviews.Reported)
-            .ToListAsync();
-        reviews.Sort((x, y) => Nullable.Compare<DateTime>(x.Date, y.Date));
-
-        isLoading = false;
+        showCancelReview = true;
     }
 
-
-    private async Task SetStatusAsync(int reviewId, Review.ApprovalStatusReviews newStatus)
+    @*Close Cancel Review Pop Up*@
+    private void CloseCancelReview()
     {
-        busyIds.Add(reviewId);
-        message = null;
+        showCancelReview = false;
+    }
 
-        try
+    @*Remove Review From Database*@
+    private async Task CancelReview()
+    {
+        if (selectedReview != null)
         {
-            await using var db = await DbFactory.CreateDbContextAsync();
-
-            var review = await db.Review
-                .FirstOrDefaultAsync(r => r.ReviewID == reviewId);
-
-            if (review is null)
-            {
-                message = "Review not found.";
-                await LoadReviewsAsync();
-                return;
-            }
-
-            review.Status = newStatus;
-            await db.SaveChangesAsync();
-
-            reviews.RemoveAll(r => r.ReviewID == reviewId);
-
-            message = "Review has been removed";
+            selectedReview.Status = Review.ApprovalStatusReviews.Removed;
+            using var context = DbFactory.CreateDbContext();
+            context.Review.Update(selectedReview);
+            await context.SaveChangesAsync();
         }
-        catch (Exception ex)
+        CloseReviewPopUp();
+        OpenRemoveReviewConfirmationPopUp();
+    }
+
+    private string userSelect = "Reported";
+
+    @*Get Bookings Based on Tab Select*@
+    private async Task GetBookings(int tab)
+    {
+        switch (tab)
         {
-            message = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            busyIds.Remove(reviewId);
-            await InvokeAsync(StateHasChanged);
+            case 1:
+                ReviewTab = reviews.Where(b => b.Status == Review.ApprovalStatusReviews.Reported).ToList();
+                tabHeader = "Reported";
+                break;
+            case 2:
+                ReviewTab = reviews.Where(r => r.Status == Review.ApprovalStatusReviews.Published).ToList();
+                tabHeader = "Published";
+                break;
+            case 3:
+                ReviewTab = reviews.Where(r => r.Status == Review.ApprovalStatusReviews.Removed).ToList();
+                tabHeader = "Removed";
+                break;
         }
     }
 
-  
+    public bool reviewPopUp = false;
+
+    @*Show Review*@
+    private void OpenReviewPopUp(Review review)
+    {
+        selectedReview = review;
+        using var context = DbFactory.CreateDbContext();
+        selectedUser = context.DinesaurUser.FirstOrDefault(r => r.DinesaurUserID == review.CustomerID);
+        selectedReservation = reservations.FirstOrDefault(m => m.ReviewID == selectedReview.ReviewID);
+        reviewPopUp = true;
+    }
+
+    @*Close Review Pop Up*@
+    private void CloseReviewPopUp()
+    {
+        reviewPopUp = false;
+        selectedReview = null;
+        selectedReservation = null;
+        selectedUser = null;
+    }
+
+    @*Show Confirmation of Review Removal*@
+    private bool removeReviewConfirmationPopUp = false;
+    private void OpenRemoveReviewConfirmationPopUp()
+    {
+        removeReviewConfirmationPopUp = true;
+    }
+
+    @*Close Confirmation of Review Removal*@
+    private void CloseRemoveReviewConfirmationPopUp()
+    {
+        removeReviewConfirmationPopUp = false;
+        NavigationManager.NavigateTo("/admin/reviews/manage", forceLoad: true);
+    }
+
 }

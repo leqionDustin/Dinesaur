@@ -9,13 +9,14 @@
 @inject AuthenticationStateProvider Auth
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
 <div style="display: flex; flex-direction:column">
+    @*Banner*@
     <div style="background-color: dimgrey; height: auto; text-align: left; display: flex; flex-direction: column; padding-left: 50px;">
         <h1 style="padding-top: 100px; text-align: left">@selectedRestaurant?.RestaurantName</h1>
                 <h2>Edit Reservation</h2>
     </div>
     <div style="padding: 50px 100px">
         <div>
-            
+            @* Edit Information of Reservation*@
             <EditForm Model="selectedReservation"OnValidSubmit="EditReservation" FormName="ReservationForm">
                 <DataAnnotationsValidator />
                 <div class="mb-3">
@@ -56,6 +57,7 @@
     
 </div>
 
+@*Show Reservation Updated Pop Up*@
 @if (reservationPopUp)
 {
     <div class="modal-backdrop">
@@ -127,6 +129,7 @@
 
 }
 
+@*Show Cancel Reservation Confirmation Pop Up*@
 @if (cancelReservationConfirmationPopUp)
 {
     <div class="modal-backdrop">
@@ -151,6 +154,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        //Get Reservation Details
         using var context = DbFactory.CreateDbContext();
         selectedReservation = context.Reservation.FirstOrDefault(m => m.ReservationID == id);
 
@@ -160,6 +164,7 @@
             return;
         }
 
+        //Get Restaurant Details
         selectedRestaurant = context.Restaurant.FirstOrDefault(x => x.RestaurantID == selectedReservation.RestaurantID);
 
         if (selectedRestaurant is null)
@@ -172,17 +177,18 @@
     }
 
     public bool reservationPopUp = false;
+    //Show Reservation Updated Pop Up
     private void OpenReservationPopUp()
     {
         reservationPopUp = true;
     }
-
+    //Close Reservation Updated Pop Up
     private void CloseReservationPopUp()
     {
         reservationPopUp = false;
         NavigationManager.NavigateTo("/MyBookings" ,forceLoad: true);
     }
-
+    //Edit Reservation in Database
     private async Task EditReservation()
     {
         using var context = DbFactory.CreateDbContext();
@@ -206,7 +212,7 @@
         OpenReservationPopUp();
 
     }
-
+    //Check if Reservation Exists
     private bool ReservationExists(int reservationid)
     {
         using var context = DbFactory.CreateDbContext();
@@ -214,18 +220,18 @@
     }
 
     public bool showCancelConfirm = false;
-
+    //  Show Cancel Confirmation Pop Up
     private void ShowCancelConfirm()
     {
         showCancelConfirm = true;
     }
 
-
+    // Close Cancel Confirmation Pop Up
     private void CloseCancelConfirm()
     {
         showCancelConfirm = false;
     }
-
+    // Confirm Cancel Reservation
     private async Task ConfirmCancel()
     {
         showCancelConfirm = false;
@@ -238,17 +244,19 @@
     }
 
     public bool cancelReservationConfirmationPopUp = false;
+    // Show Cancel Reservation Confirmation Pop Up
     private void OpenCancelReservationConfirmationPopUp()
     {
         cancelReservationConfirmationPopUp = true;
     }
-
+    //  Close Cancel Reservation Confirmation Pop Up
     private void CloseCancelReservationConfirmationPopUp()
     {
         cancelReservationConfirmationPopUp = false;
         NavigationManager.NavigateTo("/MyBookings", forceLoad: true);
     }
 
+    // Bind TimeOnly to DateTime for Input Time
     DateTime UiTime
     {
         get => DateTime.Today.Add(selectedReservation.Time.Value.ToTimeSpan());
@@ -256,7 +264,7 @@
     }
 
 
-
+    // Handle Time Input Change Event
     void OnTimeInput(ChangeEventArgs e)
     {
         if (TimeOnly.TryParse(e.Value?.ToString(), out var time))
