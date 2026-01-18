@@ -1,4 +1,4 @@
-﻿@*Users View Their Bookings*@
+﻿@*Admin View Their Reviews*@
 
 @*Page Link*@
 @page "/admin/reviews/manage"
@@ -51,20 +51,20 @@
         </div>
     </div>
 
-    
+
 
     @*Reviews Displayed Here*@
     <div style="display: flex; gap: 25px; flex-direction: column; padding: 50px;">
         @if (ReviewTab.Count == 0)
         {
             <h2><em>No @tabHeader Reviews</em></h2>
-            
+
         }
 
         else
         {
             @*Display Reviews Upcoming*@
-            <h2 style="font-weight: bold"> @tabHeader Bookings</h2>
+            <h2 style="font-weight: bold"> @tabHeader Reviews</h2>
             @foreach (var review in ReviewTab)
             {
                 @*Pull Restaurant Info*@
@@ -80,12 +80,11 @@
                                     <p style="color:white">
                                         @user <br />
                                         @review.Date.ToString("dd MMMM")<br />
-                                        
+
                                     </p>
                                     <p style="color: yellow">@review.Rating ★ </p>
                                 </div>
                                 <div style="display: flex; height: 100%; justify-content: center;">
-                                  
                                 </div>
                             </div>
                         </div>
@@ -96,7 +95,7 @@
         }
     </div>
 
-    
+
     @*Show Review Pop Up*@
     @if (reviewPopUp)
     {
@@ -138,7 +137,8 @@
                     <a class="secondary-btn" @onclick="CloseReviewPopUp">
                         Back
                     </a>
-                    @if (selectedReview.Status != Review.ApprovalStatusReviews.Removed){
+                    @if (selectedReview.Status != Review.ApprovalStatusReviews.Removed)
+                    {
                         <a class="danger-btn" @onclick="ShowCancelReview">
                             Remove
                         </a>
@@ -164,18 +164,28 @@
                 </div>
             </div>
         </div>
-    </Authorized>
 
-    <NotAuthorized>
-        @AccessDenied()
-    </NotAuthorized>
-</AuthorizeView>
+    }
+
+    @*Show Confirmation Of Review Removal*@
+    @if (removeReviewConfirmationPopUp)
+    {
+        <div class="modal-backdrop">
+
+            <div class="modal-card" @onclick:stopPropagation>
+                <h2 style="color: #88E788">Review Removed</h2>
+                <p style="color: white">Booking has been successfully removed.</p>
+                <div class="modal-buttons">
+                    <button class="secondary-btn" @onclick="CloseRemoveReviewConfirmationPopUp">Back</button>
+                </div>
+            </div>
+        </div>
+
+    }
+</div>
+
 
 @code {
-    // Fields / State
-    private string? displayName;
-    private bool isLoading = true;
-    private string? message;
 
     private List<Reservation> userBookings = new();
     private List<Review> reviews = new();
@@ -188,8 +198,7 @@
     private List<Review> ReviewTab = new List<Review>();
     DinesaurUserModel? selectedUser;
 
-    // Runs when the page loads and gets the admin's display name.
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
         @*Get Logged In User Info*@
         var authState = await Auth.GetAuthenticationStateAsync();
@@ -202,32 +211,19 @@
         }
         aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        await using var db = await DbFactory.CreateDbContextAsync();
+        @*Fetch Reservations and Restaurants from Database*@
+        using var context = DbFactory.CreateDbContext();
+        reviews = await context.Review.ToListAsync();
+        restaurants = await context.Restaurant.ToListAsync();
+        reservations = await context.Reservation.ToListAsync();
 
-        var identityUser = await db.Users
-            .Where(u => u.Id == aspNetUserId)
-            .Select(u => u.Name)
-            .SingleOrDefaultAsync();
 
+        StateHasChanged();
 
-        await LoadReviewsAsync();
     }
 
-    // Loads published and reported reviews.
-    private async Task LoadReviewsAsync()
-    {
-        isLoading = true;
-        message = null;
 
-        await using var db = await DbFactory.CreateDbContextAsync();
-
-        reviews = await db.Review
-            .Where(r =>
-                r.Status == Review.ApprovalStatusReviews.Published ||
-                r.Status == Review.ApprovalStatusReviews.Reported)
-            .ToListAsync();
-
-        reviews.Sort((x, y) => Nullable.Compare<DateTime>(x.Date, y.Date));
+    public bool showCancelReview = false;
 
     @*Show Cancel Review Pop Up*@
     private void ShowCancelReview()
@@ -241,9 +237,8 @@
         showCancelReview = false;
     }
 
-
-    // Updates a review’s status and removes it from the list.
-    private async Task SetStatusAsync(int reviewId, Review.ApprovalStatusReviews newStatus)
+    @*Remove Review From Database*@
+    private async Task CancelReview()
     {
         if (selectedReview != null)
         {
@@ -313,11 +308,4 @@
         NavigationManager.NavigateTo("/admin/reviews/manage", forceLoad: true);
     }
 
-    // Navigate to Access Denied
-    private async Task AccessDenied()
-    {
-        NavigationManager.NavigateTo("/Account/AccessDenied");
-    }
-
-  
 }

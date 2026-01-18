@@ -139,7 +139,6 @@
 
                 }
             }
-            }
         </div>
     </div>
 
@@ -322,7 +321,7 @@
             return;
         }
         foods = await DbContext.Food.Where(f => f.MenuID == selectedMenu.MenuID).ToListAsync();
-        reviews = await DbContext.Review.Where(r => r.RestaurantID == selectedRestaurant.RestaurantID).ToListAsync();
+        reviews = await DbContext.Review.Where(r => r.RestaurantID == selectedRestaurant.RestaurantID && r.Status != Review.ApprovalStatusReviews.Removed).ToListAsync();
     }
     //Open and Close Food Popup
     private void OpenPopup(Food f)

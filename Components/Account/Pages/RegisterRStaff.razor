@@ -91,13 +91,8 @@ public async Task RegisterUser(EditContext editContext)
         return;
     }
 
-    //create the user role if it doesn't exist
-    if (!await RoleManager.RoleExistsAsync("User"))
-    {
-        await RoleManager.CreateAsync(new IdentityRole("User"));
-    }
-    //add the user and restaurant staff to the user role
-    await UserManager.AddToRoleAsync(user, "User");
+    //add the restaurant staff role
+
     await UserManager.AddToRoleAsync(user, "RestaurantStaff");
     //add the user id as claim when user registers
     await UserManager.AddClaimAsync(user, new System.Security.Claims.Claim("userId",

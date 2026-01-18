@@ -220,12 +220,13 @@
         if (IMG.Size > maxIMGFileSize)
         {
             Errors.Add($"File {IMG.Name} exceeds the maximum size of {maxIMGFileSize} bytes.");
-
+            StateHasChanged();
         }
 
         if (!IMG.ContentType.StartsWith("image/"))
         {
             Errors.Add($"File {IMG.Name} is not a supported image format.");
+            StateHasChanged();
         }
         using (var mms = new MemoryStream())
         {

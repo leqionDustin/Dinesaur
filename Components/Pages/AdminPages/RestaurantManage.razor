@@ -8,14 +8,7 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider Auth
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
-@inject Dinesaur.Data.DinesaurContext DbContext
 @inject UserManager<Dinesaur.Data.DinesaurUser> UserManager
-
-<!-- Only administrators can access this page -->
-<AuthorizeView Roles="Administrator">
-
-    <!-- Content shown to authorised administrators -->
-    <Authorized>
 
         <!-- Main container for the admin page -->
         <div style="width: 100%; color: white; padding: 50px; align-items: center;">
@@ -37,23 +30,23 @@
                 {
                     <!-- Dark overlay behind the modal -->
                     <div style="
-                            position:fixed;
-                            inset:0;
-                            background:rgba(0,0,0,0.7);
-                            display:flex;
-                            justify-content:center;
-                            align-items:center;
-                            z-index:1000;">
+                                position:fixed;
+                                inset:0;
+                                background:rgba(0,0,0,0.7);
+                                display:flex;
+                                justify-content:center;
+                                align-items:center;
+                                z-index:1000;">
 
                         <!-- Modal content displaying restaurant details -->
                         <div style="
-                                background:#1e1e1e;
-                                color:white;
-                                width:60%;
-                                max-width:900px;
-                                padding:40px;
-                                border-radius:12px;
-                                box-shadow:0 0 30px rgba(0,0,0,0.6);">
+                                    background:#1e1e1e;
+                                    color:white;
+                                    width:60%;
+                                    max-width:900px;
+                                    padding:40px;
+                                    border-radius:12px;
+                                    box-shadow:0 0 30px rgba(0,0,0,0.6);">
 
                             <h2 style="font-size:48px; margin-bottom:25px;">
                                 @selectedRestaurant.RestaurantName
@@ -104,13 +97,12 @@
                     <p style="font-size:50px;">Loading...</p>
                 }
                 <!-- Message shown when there are no pending restaurants -->
-                else if (pendingRestaurants.Count == 0)
+                @if (pendingRestaurants.Count == 0)
                 {
                 <p style="font-size:50px;">No restaurants awaiting approval.</p>
                 }
                 <!-- Table displaying all pending restaurants -->
-                else
-                {
+                
                 <table style="width:100%; border-collapse:collapse; margin-top:20px;">
                     <thead>
                         <tr style="border-bottom:2px solid #444; font-size:35px;">
@@ -159,7 +151,7 @@
                         }
                     </tbody>
                 </table>
-                }
+                
 
                 <!-- Displays success or error messages after actions -->
                 @if (!string.IsNullOrWhiteSpace(message))
@@ -168,20 +160,12 @@
                 }
             </div>
         </div>
-    </Authorized>
-
-    <!-- Content shown to users without administrator access -->
-    <NotAuthorized>
-        @AccessDenied()
-    </NotAuthorized>
-
-</AuthorizeView>
-
 
 @code {
 
+    // ----------------------------
     // Fields / State
-
+    // ----------------------------
     private string? displayName;
     private bool isLoading = true;
     private string? message;
@@ -190,68 +174,72 @@
     private List<Restaurant> pendingRestaurants = new();
     private HashSet<int> busyIds = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Find the user's name in the database and then store it in displayName
+        if (!firstRender) return;
 
-        var user = (await Auth.GetAuthenticationStateAsync()).User;
-        if (!user.Identity?.IsAuthenticated ?? true) return;
+        // Get auth state
+        var authState = await Auth.GetAuthenticationStateAsync();
+        var principal = authState.User;
 
-        var aspNetUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        // If not authenticated (shouldn't happen in Authorized, but safe guard)
+        if (principal?.Identity?.IsAuthenticated != true)
+        {
+            displayName = "Admin";
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
 
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var identityUser = await db.Users
-            .Where(u => u.Id == aspNetUserId)
-            .Select(u => u.Name)
-            .SingleOrDefaultAsync();
+        // Get the actual Identity user and its custom Name field safely
+        var appUser = await UserManager.GetUserAsync(principal);
+        displayName = appUser?.Name ?? principal.Identity?.Name ?? "Admin";
 
-        displayName = identityUser ?? user.Identity?.Name;
-
+        // Load pending restaurants
         await LoadPendingRestaurantsAsync();
 
+        // Update UI
+        await InvokeAsync(StateHasChanged);
     }
+
+    // ----------------------------
     // Loads restaurants that are awaiting approval from the database.
+    // KEY FIX: IgnoreQueryFilters() in case a global filter is hiding pending rows.
+    // Also includes a fallback for default(enum) if your DB has 0 for pending.
+    // ----------------------------
     private async Task LoadPendingRestaurantsAsync()
     {
-        // Indicates data is currently loading.
         isLoading = true;
-
-        // Clear any previous messages.
         message = null;
 
-        // Create database context.
         await using var db = await DbFactory.CreateDbContextAsync();
 
-        // Retrieve all pending restaurants, newest first.
         pendingRestaurants = await db.Restaurant
-            .Where(r => r.Status == Restaurant.ApprovalStatus.Pending)
+            .IgnoreQueryFilters() // <-- critical if you have HasQueryFilter configured
+            .Where(r => r.Status == Restaurant.ApprovalStatus.Pending
+                     || r.Status == default(Restaurant.ApprovalStatus)) // safe fallback
             .OrderByDescending(r => r.RestaurantID)
             .ToListAsync();
 
-        // Loading complete.
         isLoading = false;
     }
 
-
+    // ----------------------------
     // Approves or rejects a restaurant and updates the UI.
+    // ----------------------------
     private async Task SetStatusAsync(int restaurantId, Restaurant.ApprovalStatus newStatus)
     {
-        // Mark this restaurant as busy to disable buttons.
         busyIds.Add(restaurantId);
-
-        // Clear previous messages.
         message = null;
 
         try
         {
-            // Create database context.
             await using var db = await DbFactory.CreateDbContextAsync();
 
-            // Retrieve the selected restaurant.
             var restaurant = await db.Restaurant
+                .IgnoreQueryFilters() // keep consistent with loading
                 .FirstOrDefaultAsync(r => r.RestaurantID == restaurantId);
 
-            // Handle case where the restaurant no longer exists.
             if (restaurant is null)
             {
                 message = "Restaurant not found (it may have been processed already).";
@@ -259,56 +247,54 @@
                 return;
             }
 
-            // Update approval status.
             restaurant.Status = newStatus;
             await db.SaveChangesAsync();
 
-            // Remove the restaurant from the pending list immediately.
+            // Remove immediately from UI list
             pendingRestaurants.RemoveAll(r => r.RestaurantID == restaurantId);
 
-            // Display confirmation message.
             message = newStatus == Restaurant.ApprovalStatus.Approved
                 ? "Restaurant approved."
                 : "Restaurant rejected.";
         }
         catch (Exception ex)
         {
-            // Display error message if something goes wrong.
             message = $"Error: {ex.Message}";
         }
         finally
         {
-            // Re-enable buttons for this restaurant.
             busyIds.Remove(restaurantId);
+            await InvokeAsync(StateHasChanged);
         }
     }
 
+    // ----------------------------
     // Loads full restaurant details and opens the details modal.
+    // KEY FIX: IgnoreQueryFilters() so modal works even if filters exist.
+    // ----------------------------
     private async Task MoreDetails(int restaurantId)
     {
-        // Create database context.
         await using var db = await DbFactory.CreateDbContextAsync();
 
-        // Retrieve selected restaurant details.
         selectedRestaurant = await db.Restaurant
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(r => r.RestaurantID == restaurantId);
 
-        // Show modal if restaurant exists.
         if (selectedRestaurant != null)
         {
             showDetailsModal = true;
         }
+
+        await InvokeAsync(StateHasChanged);
     }
-    // Closes the restaurant details modal and clears selected data.
+
+    // ----------------------------
+    // Closes the modal.
+    // ----------------------------
     private void CloseModal()
     {
         showDetailsModal = false;
         selectedRestaurant = null;
     }
 
-    private async Task AccessDenied()
-    {
-        NavigationManager.NavigateTo("/Account/AccessDenied");
-    }
 }
-

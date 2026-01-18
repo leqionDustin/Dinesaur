@@ -20,7 +20,7 @@ namespace Dinesaur.Configurations.Entities
                     StaffID = "999",
                     MenuID = 1,
                     Category = "Meat",
-                    Image = new List<string>()
+                    Image = ["/Images/FoodDisplay.jpg"]
                 },
                 new Food
                 {
@@ -31,7 +31,7 @@ namespace Dinesaur.Configurations.Entities
                     StaffID = "9999",
                     MenuID = 1,
                     Category = "Seafood",
-                    Image = new List<string>()
+                    Image = ["/Images/Veg.jpg"]
                 });
         }
     }
