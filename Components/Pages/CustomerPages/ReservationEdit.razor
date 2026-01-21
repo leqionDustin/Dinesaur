@@ -1,6 +1,6 @@
 ﻿@*Edit / Delete Reservation*@
 
-
+@attribute [Authorize(Roles = "User,Admin")]
 @page "/Reservation/Edit/{id:int}"
 @using Dinesaur.Domain
 @using Microsoft.EntityFrameworkCore

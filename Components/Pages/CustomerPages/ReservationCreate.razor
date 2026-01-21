@@ -1,5 +1,5 @@
 ﻿@*Page For Creating Reservation*@
-
+@attribute [Authorize(Roles = "User,Admin")]
 
 @page "/Reservation/Create/{id:int}"
 @using Dinesaur.Domain

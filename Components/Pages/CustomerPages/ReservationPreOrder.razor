@@ -1,6 +1,6 @@
 ﻿@*Pre-Order Food Items for Reservation*@
 
-
+@attribute [Authorize(Roles = "User,Admin")]
 @page "/Reservation/Create/PreOrder/{id:int}"
 @using Dinesaur.Domain
 @using Microsoft.EntityFrameworkCore

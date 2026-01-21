@@ -10,7 +10,7 @@
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
 @inject Dinesaur.Data.DinesaurContext DbContext
 @rendermode InteractiveServer
-
+@attribute [Authorize(Roles = "User,Admin")]
 <!-- Main Container -->
     <div style="
          width: 100%;

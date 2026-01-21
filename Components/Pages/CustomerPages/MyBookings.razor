@@ -10,7 +10,7 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider Auth
 @inject IDbContextFactory<Dinesaur.Data.DinesaurContext> DbFactory
-
+@attribute [Authorize(Roles = "User,Admin")]
 @*Container*@
 <div style="display: flex; flex-direction:column">
 

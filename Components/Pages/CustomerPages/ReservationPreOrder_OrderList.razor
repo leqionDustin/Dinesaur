@@ -13,7 +13,7 @@
 
 
 @inject UserManager<DinesaurUser> UserManager
-
+@attribute [Authorize(Roles = "RestaurantStaff,User,Admin")]
 <div style="display: flex; flex-direction: column; padding: 30px; font-family: Consolas;">
 
     <!-- Restaurant Name and Reservation Details-->

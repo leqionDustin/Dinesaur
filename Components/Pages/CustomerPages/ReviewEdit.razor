@@ -1,6 +1,6 @@
 ﻿@*Edit / Delete Review*@
 
-
+@attribute [Authorize(Roles = "User,Admin")]
 @page "/Review/Edit/{id:int}"
 @using Dinesaur.Domain
 @using Microsoft.EntityFrameworkCore

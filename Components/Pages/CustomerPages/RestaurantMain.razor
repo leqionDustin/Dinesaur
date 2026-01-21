@@ -1,6 +1,6 @@
 ﻿@*Home Page For Dinesaur Restaurants*@
 
-
+@attribute [Authorize(Roles = "User,Admin")]
 @page "/Restaurants/{id:int}"
 @rendermode InteractiveServer
 @using Dinesaur.Domain
